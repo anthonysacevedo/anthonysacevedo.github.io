@@ -301,13 +301,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
 /**
- * BACKEND ENGINE V2 - PlayRole Arquitecto
+ * PLAYROLE OS - BACKEND V4
+ * Gestión de Grupos, Auto-escalado y Exportación Masiva
  */
 
-const STORAGE_KEY = 'playrole_nested_collection';
+const STORAGE_KEY = 'playrole_final_db';
 let currentDorsoBase64 = null;
+let selectedGroupKey = null; // Para saber qué grupo estamos viendo/exportando
 
 const inputs = {
     situacion: document.querySelector('input[type="number"]'),
@@ -321,142 +326,178 @@ const frontPreviewContainer = document.querySelector('.card-ratio.bg-white .bord
 const dorsoPreviewImg = document.querySelector('.card-ratio.bg-primary img');
 const carouselContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
 
-// 1. MOTOR DE RENDERIZADO ACTUALIZADO
+// 1. MOTOR DE RENDERIZADO CON AUTO-ESCALADO (0.5pt steps)
 function updatePreview() {
-    const content = `
-        <div id="front-card-render" style="width: 80mm; height: 100mm; display: flex; flex-direction: column; padding: 10mm; font-family: 'Inter', sans-serif; box-sizing: border-box; background: white; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #000; padding-bottom: 2mm; margin-bottom: 4mm;">
-                <span style="font-weight: 800; font-size: 9pt; text-transform: uppercase;">Situación nº ${inputs.situacion.value}</span>
-                <span style="font-weight: 700; font-size: 9pt; color: #004ac6; text-transform: uppercase;">${inputs.rol.value || 'ROL'}</span>
+    const fontSizeDefault = 9;
+    
+    const render = (size) => {
+        return `
+        <div id="capture-area" style="width: 80mm; height: 100mm; position: relative; background: white; font-family: 'Inter', sans-serif; color: black; overflow: hidden;">
+            <div style="position: absolute; top: 3mm; left: 5mm; right: 5mm; display: flex; justify-content: space-between; border-bottom: 1px solid black; padding-bottom: 1mm;">
+                <span style="font-weight: 800; font-size: 9pt;">SITUACIÓN Nº ${inputs.situacion.value}</span>
+                <span style="font-weight: 700; font-size: 9pt; color: #004ac6;">${inputs.rol.value.toUpperCase() || 'ROL'}</span>
             </div>
             
-            <p style="font-style: normal; font-weight: 400; font-size: 8.5pt; text-align: left; margin-bottom: 5mm; line-height: 1.2; color: #000;">
-                lee atentamente la situación, sin comentarla en voz alta, imagina cómo representarla y acción
-            </p>
-
-            <div style="flex-grow: 1; text-align: left; line-height: 1.4; font-weight: 400; font-size: 9pt; color: #000;">
-                ${inputs.desarrollo.value.replace(/\n/g, '<br>') || 'Contenido de la tarjeta...'}
-            </div>
-
-            <div style="margin-top: auto; border-top: 1px solid #000; padding-top: 3mm; text-align: center;">
-                <div style="font-weight: 900; font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;">
-                    ${inputs.tema.value || 'TEMA'}
+            <div id="text-container" style="position: absolute; top: 15mm; left: 5mm; right: 5mm; bottom: 15mm; display: flex; flex-direction: column;">
+                <p style="font-weight: 400; font-size: 8.5pt; text-align: left; margin-bottom: 2mm;">lee atentamente la situación, sin comentarla en voz alta, imagina cómo representarla y acción</p>
+                <div id="dynamic-body" style="font-weight: 400; line-height: 1.3; font-size: ${size}pt;">
+                    ${inputs.desarrollo.value.replace(/\n/g, '<br>') || 'Contenido...'}
                 </div>
             </div>
-        </div>
-    `;
-    frontPreviewContainer.innerHTML = content;
-    frontPreviewContainer.style.border = "none";
-}
 
-// 2. LÓGICA DE PERSISTENCIA ANIDADA (Tema > Situación > Tarjeta)
-function saveCard() {
-    const themeName = inputs.tema.value || "Sin Tema";
-    const sitNumber = inputs.situacion.value;
-    
-    const cardData = {
-        id: Date.now(),
-        rol: inputs.rol.value || 'Personaje',
-        desarrollo: inputs.desarrollo.value,
-        imgDorso: currentDorsoBase64
+            <div style="position: absolute; bottom: 3mm; left: 5mm; right: 5mm; border-top: 1px solid black; padding-top: 2mm; text-align: center;">
+                <span style="font-weight: 900; font-size: 9pt; letter-spacing: 1px;">${inputs.tema.value.toUpperCase() || 'TEMA'}</span>
+            </div>
+        </div>`;
     };
 
-    let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    frontPreviewContainer.innerHTML = render(fontSizeDefault);
+    
+    // Lógica de ajuste automático (Backend)
+    let currentSize = fontSizeDefault;
+    const container = document.getElementById('text-container');
+    const body = document.getElementById('dynamic-body');
 
-    if (!db[themeName]) db[themeName] = {};
-    if (!db[themeName][sitNumber]) db[themeName][sitNumber] = [];
-    
-    db[themeName][sitNumber].push(cardData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    
-    renderCarousel();
-    alert(`Guardado en Tema: ${themeName} - Situación ${sitNumber}`);
+    while (body.scrollHeight > container.offsetHeight - 30 && currentSize > 5) {
+        currentSize -= 0.5;
+        frontPreviewContainer.innerHTML = render(currentSize);
+    }
 }
 
-function renderCarousel() {
+// 2. GESTIÓN DE BASE DE DATOS LOCAL
+function saveCard() {
+    const tema = inputs.tema.value || "General";
+    const situacion = inputs.situacion.value;
+    
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    
+    if (!db[tema]) db[tema] = {};
+    if (!db[tema][situacion]) db[tema][situacion] = [];
+    
+    db[tema][situacion].push({
+        id: Date.now(),
+        rol: inputs.rol.value,
+        desarrollo: inputs.desarrollo.value,
+        imgDorso: currentDorsoBase64,
+        fontSize: document.getElementById('dynamic-body').style.fontSize
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    renderGroups();
+    alert("Tarjeta añadida al grupo: " + tema);
+}
+
+function deleteGroup(tema) {
+    if(confirm(`¿Eliminar todo el grupo "${tema}"?`)) {
+        const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        delete db[tema];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        renderGroups();
+    }
+}
+
+// 3. RENDERIZADO DE RECENT CARDS (GRUPOS)
+function renderGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     carouselContainer.innerHTML = '';
     
     Object.keys(db).forEach(tema => {
-        Object.keys(db[tema]).forEach(sit => {
-            const group = document.createElement('div');
-            group.className = "flex-shrink-0 p-2 bg-surface-container-highest rounded-lg border border-primary/20";
-            group.innerHTML = `
-                <p class="text-[8px] font-black uppercase mb-1 text-primary">${tema}</p>
-                <p class="text-[7px] font-bold mb-2">SIT. ${sit} (${db[tema][sit].length} cards)</p>
-                <div class="flex gap-1">
-                    ${db[tema][sit].map(c => `<div class="w-4 h-5 bg-white rounded-sm border border-gray-300"></div>`).join('')}
-                </div>
-            `;
-            carouselContainer.appendChild(group);
-        });
+        const cardCount = Object.values(db[tema]).flat().length;
+        const item = document.createElement('div');
+        item.className = "flex-shrink-0 w-40 p-3 bg-white border border-outline-variant rounded-xl shadow-sm hover:border-primary cursor-pointer relative group";
+        item.innerHTML = `
+            <div onclick="selectGroup('${tema}')">
+                <p class="text-[10px] font-black text-primary uppercase truncate">${tema}</p>
+                <p class="text-[9px] text-on-surface-variant">${cardCount} Tarjetas</p>
+            </div>
+            <div class="mt-2 flex gap-2">
+                <button onclick="exportGroup('${tema}')" class="text-[8px] bg-primary text-white px-2 py-1 rounded">PDF</button>
+                <button onclick="deleteGroup('${tema}')" class="text-[8px] bg-error text-white px-2 py-1 rounded">Borrar</button>
+            </div>
+        `;
+        carouselContainer.appendChild(item);
     });
 }
 
-// 3. EXPORTACIÓN A4 PROFESIONAL
-async function exportA4() {
+// 4. VISTA PREVIA DE GRUPO (CARROUSEL SUPERIOR)
+window.selectGroup = (tema) => {
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const firstSituacion = Object.keys(db[tema])[0];
+    const firstCard = db[tema][firstSituacion][0];
+
+    inputs.tema.value = tema;
+    inputs.situacion.value = firstSituacion;
+    inputs.rol.value = firstCard.rol;
+    inputs.desarrollo.value = firstCard.desarrollo;
+    if(firstCard.imgDorso) {
+        currentDorsoBase64 = firstCard.imgDorso;
+        dorsoPreviewImg.src = currentDorsoBase64;
+    }
+    updatePreview();
+};
+
+// 5. EXPORTACIÓN MASIVA A4
+async function exportGroup(tema) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4'); // 210 x 297 mm
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const allCards = Object.values(db[tema]).flat();
     
-    const frontEl = document.querySelector('.card-ratio.bg-white');
-    const backEl = document.querySelector('.card-ratio.bg-primary');
+    alert(`Generando PDF para ${allCards.length} tarjetas...`);
 
-    // Renderizamos las capturas
-    const canvasF = await html2canvas(frontEl, { scale: 3 });
-    const canvasB = await html2canvas(backEl, { scale: 3 });
-    
-    const imgF = canvasF.toDataURL('image/png');
-    const imgB = canvasB.toDataURL('image/png');
+    for(let i = 0; i < allCards.length; i += 2) {
+        if(i > 0) doc.addPage();
+        
+        // Renderizar temporalmente para capturar cada tarjeta del grupo
+        for(let j = 0; j < 2; j++) {
+            const card = allCards[i + j];
+            if(!card) break;
 
-    // Configuración de montaje en A4 (2x2 tarjetas por página)
-    // Posiciones en mm para tarjetas de 80x100mm
-    const marginX = 15;
-    const marginY = 20;
-    const gap = 10;
+            inputs.situacion.value = card.situacion || inputs.situacion.value; 
+            inputs.rol.value = card.rol;
+            inputs.desarrollo.value = card.desarrollo;
+            updatePreview();
 
-    // Fila 1: Tarjeta 1
-    doc.addImage(imgF, 'PNG', marginX, marginY, 80, 100);
-    doc.addImage(imgB, 'PNG', marginX + 80 + gap, marginY, 80, 100);
-    
-    // Fila 2: Tarjeta 2 (Opcional si hay más en cola, aquí simulamos una copia)
-    doc.addImage(imgF, 'PNG', marginX, marginY + 100 + gap, 80, 100);
-    doc.addImage(imgB, 'PNG', marginX + 80 + gap, marginY + 100 + gap, 80, 100);
-
-    // Líneas de corte sugeridas (opcional)
-    doc.setDrawColor(200);
-    doc.line(marginX + 80 + (gap/2), 0, marginX + 80 + (gap/2), 297); // Línea vertical media
-
-    doc.save(`Pliego_A4_Situacion_${inputs.situacion.value}.pdf`);
+            const canvasF = await html2canvas(document.getElementById('capture-area'), { scale: 3 });
+            const yPos = j === 0 ? 20 : 130;
+            
+            doc.addImage(canvasF.toDataURL('image/png'), 'PNG', 15, yPos, 80, 100);
+            
+            // Si tiene dorso personalizado o el actual
+            const imgDorso = card.imgDorso || currentDorsoBase64;
+            if(imgDorso) {
+                doc.addImage(imgDorso, 'PNG', 105, yPos, 80, 100);
+            }
+        }
+    }
+    doc.save(`Grupo_${tema}.pdf`);
 }
 
-// 4. LISTENERS E INICIALIZACIÓN
+// CONFIGURACIÓN DE EVENTOS
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
-fileInput.accept = 'image/*';
 fileInput.onchange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            currentDorsoBase64 = ev.target.result;
-            dorsoPreviewImg.src = currentDorsoBase64;
-            dorsoPreviewImg.style.opacity = "1";
-        };
-        reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        currentDorsoBase64 = ev.target.result;
+        dorsoPreviewImg.src = currentDorsoBase64;
+        dorsoPreviewImg.style.opacity = "1";
+    };
+    reader.readAsDataURL(e.target.files[0]);
 };
 
 document.querySelector('button:has(.material-symbols-outlined[data-icon="image"])').onclick = () => fileInput.click();
 document.querySelector('button.bg-on-surface').onclick = (e) => { e.preventDefault(); saveCard(); };
-document.querySelector('button.signature-gradient.shadow-2xl').onclick = exportA4;
+document.querySelector('button.signature-gradient.shadow-2xl').onclick = () => exportGroup(inputs.tema.value);
 
 Object.values(inputs).forEach(el => el && el.addEventListener('input', updatePreview));
 
 document.addEventListener('DOMContentLoaded', () => {
-    renderCarousel();
+    renderGroups();
     updatePreview();
 });
 </script>
+
 
 
 
