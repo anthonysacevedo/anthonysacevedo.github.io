@@ -318,7 +318,10 @@
 
 <script>
 /**
- * PLAYROLE OS - BACKEND V5.6 (CLEAN DESIGN & CORS-FREE)
+ * PLAYROLE OS - BACKEND V5.7 (PDF ENGINE REBUILT)
+ * - Eliminación de errores de captura de Canvas.
+ * - Dorso limpio (Blanco/Texto) sin dependencias externas.
+ * - Auto-ajuste de texto 0.5pt.
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -347,11 +350,11 @@ if(printBtn) printBtn.innerHTML = '<span class="material-symbols-outlined">print
  */
 function renderCardToElement(data, targetId) {
     const fontSizeDefault = 9;
-    const target = document.querySelector(targetId + ' .border-dashed') || document.querySelector(targetId);
+    const target = (typeof targetId === 'string') ? document.querySelector(targetId) : targetId;
     if (!target) return;
 
     const generateHTML = (size) => `
-        <div class="render-target" style="width: 80mm; height: 100mm; position: relative; background: white; font-family: 'Inter', sans-serif; color: black; overflow: hidden; box-sizing: border-box; border: 1px solid #eee;">
+        <div class="render-target" style="width: 80mm; height: 100mm; position: relative; background: #ffffff; font-family: 'Inter', sans-serif; color: #000000; overflow: hidden; box-sizing: border-box;">
             <div style="position: absolute; top: 3mm; left: 5mm; right: 5mm; height: 8mm; display: flex; justify-content: space-between; border-bottom: 0.5pt solid black; align-items: center;">
                 <span style="font-weight: 800; font-size: 9pt;">SITUACIÓN Nº ${data.situacion || '1'}</span>
                 <span style="font-weight: 700; font-size: 9pt; color: #004ac6;">${(data.rol || '').toUpperCase()}</span>
@@ -374,18 +377,18 @@ function renderCardToElement(data, targetId) {
     const box = target.querySelector('.content-box');
     const text = target.querySelector('.dynamic-text');
 
-    while (text.scrollHeight > (box.offsetHeight - 4) && currentSize > 4.5) {
+    while (text.scrollHeight > (box.offsetHeight - 2) && currentSize > 4.5) {
         currentSize -= 0.5;
         text.style.fontSize = `${currentSize}pt`;
     }
 }
 
 /**
- * 2. EXPORTACIÓN (SIN IMÁGENES EXTERNAS)
+ * 2. EXPORTACIÓN PDF (REDISEÑADA PARA ESTABILIDAD)
  */
 async function exportA4() {
     if (!selectedTema || currentGroupCards.length === 0) {
-        return alert("Selecciona un grupo haciendo clic en él antes de imprimir.");
+        return alert("Selecciona un grupo haciendo clic en él en 'Recent Cards'.");
     }
     
     const { jsPDF } = window.jspdf;
@@ -395,26 +398,35 @@ async function exportA4() {
     printBtn.disabled = true;
 
     try {
-        // Capturamos el dorso una sola vez
+        // Capturamos el dorso una sola vez con parámetros de máxima compatibilidad
         const canvasB = await html2canvas(backContainer, { 
-            scale: 2, 
-            useCORS: true, 
-            allowTaint: false 
+            scale: 2,
+            useCORS: false, // Desactivado para evitar errores de protocolo
+            logging: false,
+            backgroundColor: null
         });
         const imgB = canvasB.toDataURL('image/png');
 
         for (let i = 0; i < currentGroupCards.length; i++) {
             if (i > 0) doc.addPage('a4', 'l');
 
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'fixed';
-            tempDiv.style.top = '-5000px'; 
-            document.body.appendChild(tempDiv);
+            // Crear contenedor temporal limpio para el frente
+            const tempWrapper = document.createElement('div');
+            tempWrapper.style.position = 'absolute';
+            tempWrapper.style.left = '-9999px';
+            document.body.appendChild(tempWrapper);
             
-            renderCardToElement(currentGroupCards[i], tempDiv);
-            await new Promise(r => setTimeout(r, 100));
+            renderCardToElement(currentGroupCards[i], tempWrapper);
             
-            const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), { scale: 2 });
+            // Esperar a que el DOM procese el HTML
+            await new Promise(r => setTimeout(r, 200));
+            
+            const targetElement = tempWrapper.querySelector('.render-target');
+            const canvasF = await html2canvas(targetElement, { 
+                scale: 2,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
             const imgF = canvasF.toDataURL('image/png');
 
             const w = 80, h = 100, y = 55;
@@ -430,12 +442,12 @@ async function exportA4() {
                 doc.line(x, y-5, x, y-1); doc.line(x, y+h+1, x, y+h+5);
             });
 
-            document.body.removeChild(tempDiv);
+            document.body.removeChild(tempWrapper);
         }
-        doc.save(`PlayRole_${selectedTema}.pdf`);
+        doc.save(`PlayRole_${selectedTema.replace(/\s+/g, '_')}.pdf`);
     } catch (e) {
-        console.error(e);
-        alert("Error al generar el PDF.");
+        console.error("PDF Error:", e);
+        alert("Error crítico al generar el PDF. Intenta crear el grupo de nuevo sin imágenes externas.");
     } finally {
         printBtn.innerHTML = originalText;
         printBtn.disabled = false;
@@ -452,7 +464,7 @@ function renderRecentGroups() {
         const div = document.createElement('div');
         div.setAttribute('data-tema', tema);
         const isActive = (tema === selectedTema);
-        div.className = `group-item flex-shrink-0 w-32 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/20 shadow-md' : 'border-outline-variant'}`;
+        div.className = `group-item flex-shrink-0 w-32 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all ${isActive ? 'border-primary shadow-md' : 'border-outline-variant'}`;
         div.innerHTML = `
             <p class="text-[9px] font-black uppercase truncate ${isActive ? 'text-primary' : 'text-on-surface'}">${tema}</p>
             <p class="text-[8px] text-gray-400">${db[tema].length} Tarjetas</p>
@@ -493,7 +505,7 @@ function saveCard() {
 }
 
 window.deleteGroup = (tema) => {
-    if(confirm(`¿Borrar grupo "${tema}"?`)) {
+    if(confirm(`¿Deseas borrar todo el grupo "${tema}"?`)) {
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete db[tema];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -513,7 +525,8 @@ function updateCarouselPreview() {
             dorsoImg.src = card.imgDorso;
             dorsoImg.style.display = "block";
         } else {
-            dorsoImg.style.display = "none"; // Si no hay imagen, no mostramos nada (queda fondo blanco)
+            dorsoImg.src = "";
+            dorsoImg.style.display = "none";
         }
     }
 }
@@ -561,9 +574,8 @@ Object.values(inputs).forEach(el => el && el.addEventListener('input', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentGroups();
-    // Limpieza inicial: quitamos cualquier src por defecto
-    const dorsoImg = document.querySelector('.card-ratio.bg-primary img');
-    if(dorsoImg) dorsoImg.src = "";
+    const dImg = document.querySelector('.card-ratio.bg-primary img');
+    if(dImg) { dImg.src = ""; dImg.style.display = "none"; }
     renderCardToElement({situacion:1, rol:'Facilitador', tema:'Tema', desarrollo:''}, '.card-ratio.bg-white');
 });
 </script>
