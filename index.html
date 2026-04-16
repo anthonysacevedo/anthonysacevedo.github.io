@@ -294,4 +294,161 @@
 <span class="text-[10px] font-bold uppercase tracking-tighter">Perfil</span>
 </button>
 </nav>
-</body></html>
+</body>
+
+<script>
+/* =========================
+   STATE GLOBAL
+========================= */
+let cards = [];
+let currentIndex = null;
+
+/* =========================
+   HELPERS
+========================= */
+function getInputs() {
+    const inputs = document.querySelectorAll("input, textarea");
+    return {
+        situacion: inputs[0].value,
+        rol: inputs[1].value,
+        tema: inputs[2].value,
+        desarrollo: document.querySelector("textarea").value,
+        dorsoNombre: inputs[3].value
+    };
+}
+
+/* =========================
+   PREVIEW RENDER
+========================= */
+function renderPreview(data) {
+    const front = document.querySelector(".grid .card-ratio");
+    const back = document.querySelectorAll(".grid .card-ratio")[1];
+
+    front.innerHTML = `
+        <div class="w-full h-full flex flex-col justify-between text-[9pt] p-2">
+            <div>
+                <p class="font-bold text-[9pt]">#${data.situacion}</p>
+                <p class="font-semibold text-[9pt]">${data.rol}</p>
+                <p class="text-[8pt] opacity-70">${data.tema}</p>
+            </div>
+            <div class="text-[8pt] leading-tight">
+                ${data.desarrollo}
+            </div>
+        </div>
+    `;
+
+    back.innerHTML = `
+        <div class="w-full h-full flex flex-col items-center justify-center text-white text-center p-2">
+            <p class="font-bold text-[9pt] tracking-wide">${data.dorsoNombre || "PLAYROLE"}</p>
+        </div>
+    `;
+}
+
+/* =========================
+   CREATE CARD
+========================= */
+function createCard() {
+    const data = getInputs();
+    cards.push(data);
+    currentIndex = cards.length - 1;
+    renderPreview(data);
+    renderMiniatures();
+}
+
+/* =========================
+   MINI CAROUSEL
+========================= */
+function renderMiniatures() {
+    const container = document.querySelector(".overflow-x-auto");
+    container.innerHTML = "";
+
+    cards.forEach((card, index) => {
+        const el = document.createElement("div");
+        el.className = "flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border flex items-center justify-center cursor-pointer";
+        el.innerHTML = `<span class="text-[8px] font-bold">#${card.situacion}</span>`;
+
+        el.onclick = () => {
+            currentIndex = index;
+            renderPreview(card);
+        };
+
+        container.appendChild(el);
+    });
+}
+
+/* =========================
+   EXPORT PDF (PRINT READY)
+========================= */
+function exportPDF() {
+    const printWindow = window.open("", "_blank");
+
+    let html = `
+    <html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .card {
+                width: 8cm;
+                height: 10cm;
+                border: 1px solid black;
+                box-sizing: border-box;
+                padding: 5mm;
+                font-family: Inter, sans-serif;
+                font-size: 9pt;
+                page-break-inside: avoid;
+            }
+        </style>
+    </head>
+    <body>
+    `;
+
+    cards.forEach(card => {
+        html += `
+        <div class="card">
+            <strong>#${card.situacion}</strong><br>
+            <strong>${card.rol}</strong><br>
+            <small>${card.tema}</small><br><br>
+            ${card.desarrollo}
+        </div>
+
+        <div class="card" style="background:black; color:white; display:flex; align-items:center; justify-content:center;">
+            ${card.dorsoNombre || "PLAYROLE"}
+        </div>
+        `;
+    });
+
+    html += `</body></html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+/* =========================
+   EVENT LISTENERS
+========================= */
+document.addEventListener("DOMContentLoaded", () => {
+
+    // BOTÓN CREAR
+    document.querySelectorAll("button")[3].onclick = createCard;
+
+    // BOTÓN EXPORTAR
+    document.querySelector(".fixed.bottom-0 button").onclick = exportPDF;
+
+    // INPUT LIVE PREVIEW
+    document.querySelectorAll("input, textarea").forEach(input => {
+        input.addEventListener("input", () => {
+            renderPreview(getInputs());
+        });
+    });
+
+});
+</script>
+
+
+
+</html>
