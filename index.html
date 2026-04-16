@@ -301,20 +301,32 @@
    STATE
 ========================= */
 let cards = [];
-let currentIndex = null;
+let categories = {}; // { tema: [cards] }
+let currentTheme = null;
+let dorsoImage = null;
 
 /* =========================
-   SELECTORES (SIN ROMPER UI)
+   SELECTORES
 ========================= */
 const inputs = document.querySelectorAll("input, textarea");
 
 const btnCrear = document.querySelectorAll("button")[3];
 const btnExportar = document.querySelector(".fixed.bottom-0 button");
+const btnImagen = document.querySelectorAll("button")[5];
 
 const previewFront = document.querySelectorAll(".card-ratio")[0];
 const previewBack = document.querySelectorAll(".card-ratio")[1];
 
 const carousel = document.querySelector(".overflow-x-auto");
+
+/* =========================
+   IMAGE INPUT (OCULTO)
+========================= */
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = "image/*";
+fileInput.style.display = "none";
+document.body.appendChild(fileInput);
 
 /* =========================
    GET DATA
@@ -325,137 +337,188 @@ function getData() {
         rol: inputs[1].value,
         tema: inputs[2].value,
         desarrollo: inputs[3].value,
-        dorso: inputs[4].value
+        dorso: inputs[4].value,
+        image: dorsoImage
     };
 }
 
 /* =========================
-   RENDER PREVIEW (FORMATO IMAGEN)
+   PREVIEW
 ========================= */
 function renderPreview(data) {
 
     previewFront.innerHTML = `
         <div class="w-full h-full flex flex-col justify-between text-[9pt] p-2">
 
-            <!-- HEADER -->
-            <div class="flex justify-between font-semibold text-[9pt]">
+            <div class="flex justify-between font-semibold">
                 <span>Situación ${data.situacion || ""}</span>
                 <span>${data.rol || ""}</span>
             </div>
 
-            <!-- CONTENIDO -->
             <div class="flex-1 flex items-center">
                 <p class="text-[8pt] leading-tight">
                     ${data.desarrollo || ""}
                 </p>
             </div>
 
-            <!-- FOOTER -->
             <div class="border-t pt-1 text-center">
-                <span class="text-[8pt] font-semibold">
-                    ${data.tema || ""}
-                </span>
+                <span class="text-[8pt] font-semibold">${data.tema || ""}</span>
             </div>
+
         </div>
     `;
 
     previewBack.innerHTML = `
-        <div class="w-full h-full flex items-center justify-center text-white text-[9pt] font-bold">
-            ${data.dorso || "PLAYROLE"}
+        <div class="w-full h-full flex items-center justify-center relative text-white">
+
+            ${data.image ? `
+                <img src="${data.image}" 
+                     style="width:3cm;height:3cm;object-fit:cover;object-position:center;position:absolute;">
+            ` : ""}
+
+            <span class="text-[9pt] font-bold relative z-10">
+                ${data.dorso || "PLAYROLE"}
+            </span>
+
         </div>
     `;
 }
 
 /* =========================
-   CREAR TARJETA
+   CREATE CARD + CATEGORY
 ========================= */
 function createCard() {
+
     const data = getData();
+
+    // CATEGORY
+    if (!categories[data.tema]) {
+        categories[data.tema] = [];
+    }
+
+    categories[data.tema].push(data);
+
+    // RECENT
     cards.push(data);
-    currentIndex = cards.length - 1;
+    currentTheme = data.tema;
 
     renderPreview(data);
     renderCarousel();
 }
 
 /* =========================
-   CARRUSEL
+   CAROUSEL (FILTRADO POR TEMA)
 ========================= */
 function renderCarousel() {
+
     carousel.innerHTML = "";
 
-    cards.forEach((card, index) => {
+    const list = categories[currentTheme] || [];
+
+    list.forEach((card, index) => {
 
         const el = document.createElement("div");
 
-        el.className = "flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center cursor-pointer";
+        el.className = "flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border flex items-center justify-center cursor-pointer";
 
         el.innerHTML = `<span class="text-[8px] font-bold">#${card.situacion}</span>`;
 
-        el.onclick = () => {
-            currentIndex = index;
-            renderPreview(card);
-        };
+        el.onclick = () => renderPreview(card);
 
         carousel.appendChild(el);
     });
 }
 
 /* =========================
-   EXPORTAR A4
+   IMAGE UPLOAD
+========================= */
+btnImagen.onclick = () => fileInput.click();
+
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        dorsoImage = ev.target.result;
+        renderPreview(getData());
+    };
+    reader.readAsDataURL(file);
+};
+
+/* =========================
+   EXPORT A4 PRO
 ========================= */
 function exportPDF() {
 
     const win = window.open("", "_blank");
 
+    const list = categories[currentTheme] || [];
+
     let html = `
     <html>
     <head>
     <style>
-    @page { size: A4; margin: 1cm; }
+    @page { size: A4; margin: 0.5cm; }
 
-    body { font-family: Inter; margin:0; }
+    body { margin:0; font-family: Inter; }
 
     .page {
-        width: 21cm;
-        height: 29.7cm;
-        display: grid;
+        width:21cm;
+        height:29.7cm;
+        display:grid;
         grid-template-columns: repeat(2, 8cm);
         grid-auto-rows: 10cm;
-        gap: 0.5cm;
-        justify-content: center;
-        align-content: start;
-        page-break-after: always;
+        gap:0.3cm;
+        justify-content:center;
+        align-content:start;
+        page-break-after:always;
     }
 
     .card {
-        width: 8cm;
-        height: 10cm;
-        border: 1px solid black;
-        padding: 5mm;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        font-size: 9pt;
+        width:8cm;
+        height:10cm;
+        border:1px solid black;
+        padding:4mm;
+        box-sizing:border-box;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        font-size:9pt;
     }
 
     .footer {
-        border-top: 1px solid black;
-        text-align: center;
-        font-size: 8pt;
-        font-weight: 600;
+        border-top:1px solid black;
+        text-align:center;
+        font-size:8pt;
+        font-weight:600;
+    }
+
+    .back {
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:black;
+        color:white;
+        position:relative;
+    }
+
+    .img {
+        width:3cm;
+        height:3cm;
+        object-fit:cover;
+        position:absolute;
     }
     </style>
     </head>
     <body>
     `;
 
-    /* FRONT */
-    for (let i = 0; i < cards.length; i += 4) {
+    // FRONT
+    for (let i = 0; i < list.length; i += 4) {
         html += `<div class="page">`;
 
-        cards.slice(i, i + 4).forEach(card => {
+        list.slice(i, i + 4).forEach(card => {
             html += `
             <div class="card">
                 <div style="display:flex;justify-content:space-between;font-weight:600;">
@@ -475,14 +538,15 @@ function exportPDF() {
         html += `</div>`;
     }
 
-    /* BACK */
-    for (let i = 0; i < cards.length; i += 4) {
+    // BACK
+    for (let i = 0; i < list.length; i += 4) {
         html += `<div class="page">`;
 
-        cards.slice(i, i + 4).forEach(card => {
+        list.slice(i, i + 4).forEach(card => {
             html += `
-            <div class="card" style="background:black;color:white;display:flex;align-items:center;justify-content:center;">
-                ${card.dorso || "PLAYROLE"}
+            <div class="card back">
+                ${card.image ? `<img src="${card.image}" class="img">` : ""}
+                <span>${card.dorso || "PLAYROLE"}</span>
             </div>
             `;
         });
@@ -500,18 +564,11 @@ function exportPDF() {
 /* =========================
    EVENTOS
 ========================= */
-
-// Crear
 btnCrear.onclick = createCard;
-
-// Exportar
 btnExportar.onclick = exportPDF;
 
-// Live preview
 inputs.forEach(input => {
-    input.addEventListener("input", () => {
-        renderPreview(getData());
-    });
+    input.addEventListener("input", () => renderPreview(getData()));
 });
 
 </script>
