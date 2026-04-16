@@ -295,339 +295,166 @@
 </button>
 </nav>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
+/**
+ * ARCHIVO: core-engine.js
+ * FUNCIÓN: Lógica de Backend para Generador de Tarjetas PlayRole
+ */
 
-/* =========================
-   STATE + PERSISTENCIA
-========================= */
-let cards = JSON.parse(localStorage.getItem("cards")) || [];
-let categories = JSON.parse(localStorage.getItem("categories")) || {};
-let currentTheme = null;
-let dorsoImage = null;
+// --- 1. CONFIGURACIÓN Y SELECTORES ---
+const STORAGE_KEY = 'playrole_cards_collection';
+let currentDorsoBase64 = null;
 
-function saveData(){
-    localStorage.setItem("cards", JSON.stringify(cards));
-    localStorage.setItem("categories", JSON.stringify(categories));
-}
-
-/* =========================
-   SELECTORES (RESPETA TU UI)
-========================= */
-const inputs = document.querySelectorAll("input, textarea");
-const previewFront = document.querySelectorAll(".card-ratio")[0];
-const previewBack = document.querySelectorAll(".card-ratio")[1];
-const carousel = document.querySelector(".overflow-x-auto");
-
-const btnCrear = document.querySelectorAll("button")[3];
-const btnExportar = document.querySelector(".fixed.bottom-0 button");
-const btnImagen = document.querySelectorAll("button")[5];
-
-/* =========================
-   INPUT FILE OCULTO
-========================= */
-const fileInput = document.createElement("input");
-fileInput.type = "file";
-fileInput.accept = "image/*";
-fileInput.style.display = "none";
-document.body.appendChild(fileInput);
-
-/* =========================
-   DATA
-========================= */
-function getData(){
-    return {
-        situacion: inputs[0].value,
-        rol: inputs[1].value,
-        tema: inputs[2].value,
-        desarrollo: inputs[3].value,
-        dorso: inputs[4].value,
-        image: dorsoImage
-    };
-}
-
-/* =========================
-   PREVIEW (TU DISEÑO)
-========================= */
-function renderPreview(data){
-
-    previewFront.innerHTML = `
-        <div class="w-full h-full flex flex-col justify-between text-[9pt] p-2">
-
-            <div class="flex justify-between font-semibold">
-                <span>Situación ${data.situacion || ""}</span>
-                <span>${data.rol || ""}</span>
-            </div>
-
-            <div class="flex-1 flex items-center">
-                <p class="text-[8pt] leading-tight">
-                    ${data.desarrollo || ""}
-                </p>
-            </div>
-
-            <div class="border-t pt-1 text-center">
-                <span class="text-[8pt] font-semibold">${data.tema || ""}</span>
-            </div>
-
-        </div>
-    `;
-
-    previewBack.innerHTML = `
-        <div class="w-full h-full flex items-center justify-center relative text-white">
-
-            ${data.image ? `
-                <img src="${data.image}" 
-                     style="width:3cm;height:3cm;object-fit:cover;position:absolute;">
-            ` : ""}
-
-            <span class="relative z-10 text-[9pt] font-bold">
-                ${data.dorso || "PLAYROLE"}
-            </span>
-
-        </div>
-    `;
-}
-
-/* =========================
-   CREAR TARJETA
-========================= */
-function createCard(){
-
-    const data = getData();
-
-    if(!categories[data.tema]){
-        categories[data.tema] = [];
-    }
-
-    categories[data.tema].push(data);
-    cards.push(data);
-
-    currentTheme = data.tema;
-
-    saveData();
-    renderPreview(data);
-    renderCarousel();
-}
-
-/* =========================
-   CAROUSEL + DRAG
-========================= */
-function renderCarousel(){
-
-    carousel.innerHTML = "";
-
-    const list = categories[currentTheme] || [];
-
-    list.forEach((card, index) => {
-
-        const el = document.createElement("div");
-
-        el.className = "flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border flex items-center justify-center cursor-pointer";
-        el.innerHTML = `<span class="text-[8px] font-bold">#${card.situacion}</span>`;
-        el.draggable = true;
-
-        el.onclick = () => renderPreview(card);
-
-        el.ondragstart = () => el.classList.add("opacity-50");
-        el.ondragend = () => {
-            el.classList.remove("opacity-50");
-            updateOrder();
-        };
-
-        carousel.appendChild(el);
-    });
-}
-
-/* DRAG LOGIC */
-carousel.ondragover = e => {
-    e.preventDefault();
-
-    const dragging = document.querySelector(".opacity-50");
-    const after = [...carousel.children].find(el =>
-        e.clientX < el.getBoundingClientRect().left + el.offsetWidth / 2
-    );
-
-    carousel.insertBefore(dragging, after);
+const inputs = {
+    situacion: document.querySelector('input[type="number"]'),
+    rol: document.querySelector('input[placeholder="Ej: Facilitador"]'),
+    tema: document.querySelector('input[placeholder="Conflict Resolution"]'),
+    desarrollo: document.querySelector('textarea'),
+    nombreDorso: document.querySelector('input[placeholder="Set Alpha 2024"]')
 };
 
-function updateOrder(){
-    const order = [...carousel.children].map(el => el.innerText.replace("#",""));
+const frontPreviewContainer = document.querySelector('.card-ratio.bg-white .border-dashed');
+const dorsoPreviewImg = document.querySelector('.card-ratio.bg-primary img');
+const carouselContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
 
-    categories[currentTheme].sort((a,b)=>
-        order.indexOf(a.situacion) - order.indexOf(b.situacion)
-    );
+// --- 2. MOTOR DE RENDERIZADO (FRENTE) ---
+function updatePreview() {
+    // Estructura basada en los requerimientos del PDF de ejemplo
+    const content = `
+        <div id="front-card-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; padding: 12px; font-family: 'Inter', sans-serif; box-sizing: border-box; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #000; padding-bottom: 4px; margin-bottom: 8px;">
+                <span style="font-weight: 800; font-size: 9pt; text-transform: uppercase;">Situación nº ${inputs.situacion.value}</span>
+                <span style="font-weight: 700; font-size: 9pt; color: #004ac6; text-transform: uppercase;">${inputs.rol.value || 'CLIENTE'}</span>
+            </div>
+            
+            <p style="font-style: italic; font-weight: 400; font-size: 8pt; margin-bottom: 10px; line-height: 1.2; color: #333;">
+                Lee atentamente la situación, sin comentarla en voz alta, imagina cómo representarla y acción.
+            </p>
 
-    saveData();
-}
+            <div style="flex-grow: 1; text-align: left; line-height: 1.3; font-weight: 400; font-size: 9pt; overflow: hidden; color: #000;">
+                ${inputs.desarrollo.value.replace(/\n/g, '<br>') || 'El escenario de roleplay aparecerá aquí...'}
+            </div>
 
-/* =========================
-   IMAGEN DORSO
-========================= */
-btnImagen.onclick = () => fileInput.click();
-
-fileInput.onchange = e => {
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const reader = new FileReader();
-    reader.onload = ev => {
-        dorsoImage = ev.target.result;
-        renderPreview(getData());
-    };
-    reader.readAsDataURL(file);
-};
-
-/* =========================
-   EXPORT PRO IMPRENTA
-========================= */
-function exportPDF(){
-
-    const list = categories[currentTheme] || [];
-    const win = window.open("", "_blank");
-
-    let html = `
-    <html>
-    <head>
-    <style>
-
-    @page { size:A4; margin:0; }
-    body { margin:0; font-family: Inter; }
-
-    .sheet{
-        width:21cm;
-        height:29.7cm;
-        display:grid;
-        grid-template-columns:repeat(2,8cm);
-        grid-auto-rows:10cm;
-        gap:0.4cm;
-        justify-content:center;
-        align-content:center;
-        page-break-after:always;
-    }
-
-    .card{
-        border:1px solid black;
-        padding:4mm;
-        display:flex;
-        flex-direction:column;
-        justify-content:space-between;
-        font-size:9pt;
-        position:relative;
-    }
-
-    .footer{
-        border-top:1px solid black;
-        text-align:center;
-        font-size:8pt;
-        font-weight:600;
-    }
-
-    .back{
-        background:black;
-        color:white;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        position:relative;
-    }
-
-    .img{
-        width:3cm;
-        height:3cm;
-        object-fit:cover;
-        position:absolute;
-    }
-
-    /* marcas corte */
-    .mark{
-        position:absolute;
-        width:6mm;
-        height:6mm;
-        border:1px solid;
-    }
-
-    .tl{ top:-3mm; left:-3mm; border-right:none; border-bottom:none; }
-    .tr{ top:-3mm; right:-3mm; border-left:none; border-bottom:none; }
-    .bl{ bottom:-3mm; left:-3mm; border-right:none; border-top:none; }
-    .br{ bottom:-3mm; right:-3mm; border-left:none; border-top:none; }
-
-    </style>
-    </head>
-    <body>
-    `;
-
-    /* FRONT */
-    for(let i=0;i<list.length;i+=4){
-        html+=`<div class="sheet">`;
-
-        list.slice(i,i+4).forEach(card=>{
-            html+=`
-            <div class="card">
-                <div style="display:flex;justify-content:space-between;font-weight:600;">
-                    <span>Situación ${card.situacion}</span>
-                    <span>${card.rol}</span>
+            <div style="margin-top: auto;">
+                <div style="width: 100%; height: 1px; background: #000; margin-bottom: 4px;"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 7pt; font-weight: 600; color: #555;">
+                    <span>Sucursales y Nacionales</span> <span style="color: #004ac6;">CORREO RolePlay</span> </div>
+                <div style="text-align: center; font-weight: 900; font-size: 8pt; text-transform: uppercase; margin-top: 3px; letter-spacing: 1px;">
+                    ${inputs.tema.value || 'TEMA'}
                 </div>
-
-                <div style="font-size:8pt;">${card.desarrollo}</div>
-
-                <div class="footer">${card.tema}</div>
-
-                <div class="mark tl"></div>
-                <div class="mark tr"></div>
-                <div class="mark bl"></div>
-                <div class="mark br"></div>
             </div>
-            `;
-        });
-
-        html+=`</div>`;
-    }
-
-    /* BACK (ESPEJO) */
-    for(let i=0;i<list.length;i+=4){
-        html+=`<div class="sheet">`;
-
-        list.slice(i,i+4).reverse().forEach(card=>{
-            html+=`
-            <div class="card back">
-                ${card.image ? `<img src="${card.image}" class="img">` : ""}
-                <span>${card.dorso || "PLAYROLE"}</span>
-
-                <div class="mark tl"></div>
-                <div class="mark tr"></div>
-                <div class="mark bl"></div>
-                <div class="mark br"></div>
-            </div>
-            `;
-        });
-
-        html+=`</div>`;
-    }
-
-    html+=`</body></html>`;
-
-    win.document.write(html);
-    win.document.close();
-    win.print();
+        </div>
+    `;
+    frontPreviewContainer.innerHTML = content;
+    frontPreviewContainer.style.border = "none";
+    frontPreviewContainer.parentElement.style.padding = "0"; // Ajuste para que ocupe todo el contenedor
 }
 
-/* =========================
-   EVENTOS
-========================= */
-btnCrear.onclick = createCard;
-btnExportar.onclick = exportPDF;
+// --- 3. GESTIÓN DE IMÁGENES (DORSO) ---
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = 'image/*';
 
-inputs.forEach(input=>{
-    input.addEventListener("input", ()=>renderPreview(getData()));
-});
+document.querySelector('button:has(.material-symbols-outlined[data-icon="image"])').onclick = () => fileInput.click();
 
-/* =========================
-   INIT
-========================= */
-if(cards.length){
-    currentTheme = cards[cards.length-1].tema;
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            currentDorsoBase64 = event.target.result;
+            if (dorsoPreviewImg) {
+                dorsoPreviewImg.src = currentDorsoBase64;
+                dorsoPreviewImg.style.opacity = "1";
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// --- 4. PERSISTENCIA (LOCALSTORAGE) ---
+function saveCard() {
+    const card = {
+        id: Date.now(),
+        situacion: inputs.situacion.value,
+        rol: inputs.rol.value,
+        tema: inputs.tema.value,
+        desarrollo: inputs.desarrollo.value,
+        nombreDorso: inputs.nombreDorso.value,
+        imagenDorso: currentDorsoBase64
+    };
+
+    const collection = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    collection.unshift(card);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collection.slice(0, 20))); // Límite de 20 para optimizar espacio
     renderCarousel();
 }
 
+function renderCarousel() {
+    const collection = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    carouselContainer.innerHTML = collection.map(card => `
+        <div onclick="loadCard(${card.id})" class="flex-shrink-0 w-24 card-ratio bg-white rounded-md border border-outline-variant/30 flex flex-col items-center justify-center hover:ring-2 hover:ring-primary transition-all cursor-pointer p-2 shadow-sm">
+            <span class="text-[9px] font-black text-primary">#${card.situacion}</span>
+            <span class="text-[7px] uppercase font-bold text-on-surface-variant truncate w-full text-center">${card.rol || 'Sin Rol'}</span>
+        </div>
+    `).join('');
+}
+
+window.loadCard = (id) => {
+    const collection = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const card = collection.find(c => c.id === id);
+    if (card) {
+        inputs.situacion.value = card.situacion;
+        inputs.rol.value = card.rol;
+        inputs.tema.value = card.tema;
+        inputs.desarrollo.value = card.desarrollo;
+        inputs.nombreDorso.value = card.nombreDorso;
+        if (card.imagenDorso) {
+            currentDorsoBase64 = card.imagenDorso;
+            dorsoPreviewImg.src = card.imagenDorso;
+        }
+        updatePreview();
+    }
+};
+
+// --- 5. EXPORTACIÓN PDF (8x10 CM DOBLE FAZ) ---
+async function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "p", unit: "mm", format: [80, 100] });
+
+    const front = document.querySelector('.card-ratio.bg-white');
+    const back = document.querySelector('.card-ratio.bg-primary');
+
+    // Procesar Frente
+    const canvasF = await html2canvas(front, { scale: 3, useCORS: true });
+    doc.addImage(canvasF.toDataURL('image/png'), 'PNG', 0, 0, 80, 100);
+
+    // Procesar Dorso
+    doc.addPage([80, 100], "p");
+    const canvasB = await html2canvas(back, { scale: 3, useCORS: true });
+    doc.addImage(canvasB.toDataURL('image/png'), 'PNG', 0, 0, 80, 100);
+
+    doc.save(`PlayRole_S${inputs.situacion.value}.pdf`);
+}
+
+// --- 6. INICIALIZACIÓN DE EVENTOS ---
+Object.values(inputs).forEach(el => el && el.addEventListener('input', updatePreview));
+
+document.querySelector('button.bg-on-surface').onclick = (e) => {
+    e.preventDefault();
+    saveCard();
+};
+
+document.querySelector('button.signature-gradient.shadow-2xl').onclick = exportPDF;
+
+// Render inicial
+document.addEventListener('DOMContentLoaded', () => {
+    renderCarousel();
+    updatePreview();
+});
 </script>
 
 
