@@ -13,6 +13,7 @@
         body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; }
         .card-ratio { aspect-ratio: 80 / 100; width: 100%; max-width: 320px; }
         .signature-gradient { background: linear-gradient(135deg, #004ac6 0%, #002d7a 100%); color: white; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -20,75 +21,75 @@
         
         <div class="space-y-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">edit_square</span> CONFIGURACIÓN
+                <span class="material-symbols-outlined text-blue-600">edit_square</span> CONFIGURACIÓN
             </h2>
             
             <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Situación Nº</label>
-                    <input type="number" value="1" class="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <input type="number" id="input-situacion" value="1" class="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Rol / Personaje</label>
-                    <input type="text" placeholder="Ej: Facilitador" class="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <input type="text" id="input-rol" placeholder="Ej: Facilitador" class="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Tema del Grupo</label>
-                <input type="text" placeholder="Conflict Resolution" class="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-blue-700 font-bold">
+                <input type="text" id="input-tema" placeholder="Conflict Resolution" class="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-blue-700 font-bold">
             </div>
 
             <div class="flex flex-col gap-1">
-                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Descripción de la Situación</label>
-                <textarea rows="4" placeholder="Describe el contexto..." class="p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"></textarea>
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Descripción</label>
+                <textarea id="input-desarrollo" rows="4" placeholder="Describe el contexto..." class="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
             </div>
 
             <div class="pt-4 border-t border-gray-100">
-                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Personalización del Dorso</label>
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Nombre del Dorso</label>
                 <div class="flex gap-2 mt-2">
-                    <input type="text" placeholder="Set Alpha 2024" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-                    <button class="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors" title="Subir Logo">
+                    <input type="text" id="input-nombre-dorso" placeholder="Set Alpha 2024" class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="btn-upload-img" class="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
                         <span class="material-symbols-outlined">image</span>
                     </button>
                 </div>
             </div>
 
             <div class="flex gap-4 pt-4">
-                <button class="flex-1 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg active:scale-95">
+                <button id="btn-save" class="flex-1 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg active:scale-95">
                     GUARDAR TARJETA
                 </button>
-                <button class="signature-gradient px-6 py-4 rounded-xl font-bold shadow-2xl flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shrink-0">
-                    <span class="material-symbols-outlined">print</span> IMPRIMIR GRUPO
+                <button id="btn-print" class="signature-gradient px-6 py-4 rounded-xl font-bold shadow-2xl flex items-center gap-2 hover:opacity-90 transition-all active:scale-95">
+                    <span class="material-symbols-outlined">print</span> IMPRIMIR
                 </button>
             </div>
 
             <div class="pt-6 border-t border-gray-100">
-                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Grupos Recientes</h3>
-                <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide" id="recent-groups">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Recent Cards (Selecciona un grupo)</h3>
+                <div id="carousel-grupos" class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                     </div>
             </div>
         </div>
 
         <div class="flex flex-col items-center justify-center gap-8">
             <div class="flex items-center gap-4">
-                <button class="p-2 hover:bg-gray-200 rounded-full transition-colors"><span class="material-symbols-outlined">chevron_left</span></button>
+                <button id="btn-prev" class="p-2 hover:bg-gray-200 rounded-full"><span class="material-symbols-outlined">chevron_left</span></button>
                 
                 <div class="flex flex-col md:flex-row gap-6">
-                    <div class="card-ratio bg-white rounded-lg shadow-2xl border border-gray-200 p-2">
+                    <div id="card-front" class="card-ratio bg-white rounded-lg shadow-2xl border border-gray-200 p-2">
                         <div class="w-full h-full border-2 border-dashed border-gray-100 rounded flex items-center justify-center overflow-hidden">
                             </div>
                     </div>
 
-                    <div class="card-ratio bg-white rounded-lg shadow-2xl border-2 border-black p-6 flex flex-col items-center justify-center relative">
-                        <img id="dorso-logo" src="" class="max-w-[70%] mb-4" style="display: none;">
-                        <h3 id="dorso-title-preview" class="text-black font-black uppercase text-center tracking-widest text-xl break-words w-full">
+                    <div id="card-back" class="card-ratio bg-white rounded-lg shadow-2xl border-2 border-black p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                        <img id="dorso-logo-preview" src="" class="max-w-[70%] mb-4" style="display: none;">
+                        <h3 id="dorso-text-preview" class="text-black font-black uppercase text-center tracking-widest text-xl break-words w-full">
                             PLAYROLE
                         </h3>
                     </div>
                 </div>
 
-                <button class="p-2 hover:bg-gray-200 rounded-full transition-colors"><span class="material-symbols-outlined">chevron_right</span></button>
+                <button id="btn-next" class="p-2 hover:bg-gray-200 rounded-full"><span class="material-symbols-outlined">chevron_right</span></button>
             </div>
             <p class="text-gray-400 text-xs font-medium uppercase tracking-widest">Vista Previa de Impresión</p>
         </div>
