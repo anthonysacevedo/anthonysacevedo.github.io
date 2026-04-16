@@ -322,6 +322,11 @@
  * A4 Apaisada | Marcas de Corte | Carrusel de Grupo | Fix Dorso
  */
 
+/**
+ * PLAYROLE OS - BACKEND V5.1 (FIXED)
+ * A4 Apaisada | Auto-ajuste de texto 0.5pt | Márgenes de seguridad 3mm
+ */
+
 const STORAGE_KEY = 'playrole_v5_db';
 let currentDorsoBase64 = null;
 let currentGroupCards = []; 
@@ -342,43 +347,56 @@ const carouselContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
 const printBtn = document.querySelector('button.signature-gradient.shadow-2xl');
 if(printBtn) printBtn.innerHTML = '<span class="material-symbols-outlined">print</span> IMPRIMIR GRUPO';
 
-// 1. MOTOR DE RENDERIZADO CON AUTO-ESCALADO E IZQUIERDA
+/**
+ * 1. MOTOR DE RENDERIZADO (FIXED)
+ * Soluciona el desfasaje del campo desarrollo y aplica escala inteligente.
+ */
 function renderCardToElement(data, targetId) {
     const fontSizeDefault = 9;
     const target = document.querySelector(targetId + ' .border-dashed') || document.querySelector(targetId);
-    
-    const html = (size) => `
-        <div class="render-target" style="width: 80mm; height: 100mm; position: relative; background: white; font-family: 'Inter', sans-serif; color: black; overflow: hidden; text-align: left;">
-            <div style="position: absolute; top: 3mm; left: 5mm; right: 5mm; display: flex; justify-content: space-between; border-bottom: 1px solid black; padding-bottom: 1mm;">
-                <span style="font-weight: 800; font-size: 9pt;">SITUACIÓN Nº ${data.situacion}</span>
-                <span style="font-weight: 700; font-size: 9pt; color: #004ac6;">${data.rol.toUpperCase()}</span>
+    if (!target) return;
+
+    // Estructura HTML con medidas físicas reales (mm) para precisión de impresión
+    const generateHTML = (size) => `
+        <div class="render-target" style="width: 80mm; height: 100mm; position: relative; background: white; font-family: 'Inter', sans-serif; color: black; overflow: hidden; margin: 0; padding: 0; box-sizing: border-box; border: 1px solid #eee;">
+            <div style="position: absolute; top: 3mm; left: 5mm; right: 5mm; height: 7mm; display: flex; justify-content: space-between; border-bottom: 0.5pt solid black; align-items: center; z-index: 10;">
+                <span style="font-weight: 800; font-size: 9pt;">SITUACIÓN Nº ${data.situacion || '0'}</span>
+                <span style="font-weight: 700; font-size: 9pt; color: #004ac6;">${(data.rol || '').toUpperCase()}</span>
             </div>
-            <div class="content-box" style="position: absolute; top: 15mm; left: 5mm; right: 5mm; bottom: 15mm; display: flex; flex-direction: column;">
-                <p style="font-weight: 400; font-size: 8.5pt; margin-bottom: 2mm; text-align: left;">lee atentamente la situación, sin comentarla en voz alta, imagina cómo representarla y acción</p>
-                <div class="dynamic-text" style="font-weight: 400; line-height: 1.3; font-size: ${size}pt; text-align: left;">
-                    ${data.desarrollo.replace(/\n/g, '<br>')}
+
+            <div class="content-box" style="position: absolute; top: 14mm; left: 5mm; right: 5mm; bottom: 14mm; overflow: hidden; display: flex; flex-direction: column;">
+                <p style="font-weight: 400; font-size: 7.5pt; margin-bottom: 2mm; font-style: italic; color: #434655; line-height: 1.1;">
+                    Lee atentamente la situación, sin comentarla en voz alta, imagina cómo representarla y acción.
+                </p>
+                <div class="dynamic-text" style="font-weight: 400; line-height: 1.25; font-size: ${size}pt; text-align: left; word-wrap: break-word;">
+                    ${(data.desarrollo || '').replace(/\n/g, '<br>')}
                 </div>
             </div>
-            <div style="position: absolute; bottom: 3mm; left: 5mm; right: 5mm; border-top: 1px solid black; padding-top: 2mm; text-align: center;">
-                <span style="font-weight: 900; font-size: 9pt; letter-spacing: 1px;">${data.tema.toUpperCase()}</span>
+
+            <div style="position: absolute; bottom: 3mm; left: 5mm; right: 5mm; height: 7mm; border-top: 0.5pt solid black; display: flex; align-items: center; justify-content: center; z-index: 10;">
+                <span style="font-weight: 900; font-size: 9pt; letter-spacing: 1px;">${(data.tema || '').toUpperCase()}</span>
             </div>
         </div>`;
 
-    target.innerHTML = html(fontSizeDefault);
+    // Renderizado inicial
+    target.innerHTML = generateHTML(fontSizeDefault);
+    
     let currentSize = fontSizeDefault;
     const box = target.querySelector('.content-box');
     const text = target.querySelector('.dynamic-text');
 
-    while (text.scrollHeight > box.offsetHeight - 25 && currentSize > 5) {
+    // AJUSTE INTELIGENTE: Si el texto desborda el contenedor seguro, restamos 0.5pt
+    // El límite inferior es 4.5pt para asegurar legibilidad mínima
+    while (text.scrollHeight > (box.offsetHeight - 8) && currentSize > 4.5) {
         currentSize -= 0.5;
-        target.innerHTML = html(currentSize);
+        text.style.fontSize = `${currentSize}pt`;
     }
 }
 
-// 2. GESTIÓN DE GRUPOS Y SELECCIÓN
+// 2. GESTIÓN DE GRUPOS
 function saveCard() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    const tema = inputs.tema.value || "General";
+    const tema = inputs.tema.value.trim() || "General";
     if (!db[tema]) db[tema] = [];
     
     db[tema].push({
@@ -406,75 +424,75 @@ function updateCarouselPreview() {
     if (currentGroupCards.length === 0) return;
     const card = currentGroupCards[currentPreviewIndex];
     
-    // Actualizar Frente
     renderCardToElement(card, '.card-ratio.bg-white');
     
-    // Actualizar Dorso
     const dorsoImg = document.querySelector('.card-ratio.bg-primary img');
-    if (card.imgDorso) {
+    if (card.imgDorso && dorsoImg) {
         dorsoImg.src = card.imgDorso;
         dorsoImg.style.opacity = "1";
     }
 }
 
-// 3. EXPORTACIÓN A4 APAISADA CON MARCAS DE CORTE
+// 3. EXPORTACIÓN A4 APAISADA (MARCAS DE CORTE PRECISAS)
 async function exportA4() {
     if (currentGroupCards.length === 0) return alert("Selecciona un grupo primero");
     
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // 'l' = Landscape (297x210)
+    const doc = new jsPDF('l', 'mm', 'a4');
 
     for (let i = 0; i < currentGroupCards.length; i++) {
         const card = currentGroupCards[i];
         if (i > 0) doc.addPage('a4', 'l');
 
-        // Render temporal oculto para captura
         const tempDiv = document.createElement('div');
         tempDiv.style.position = 'fixed';
         tempDiv.style.top = '-2000px';
         document.body.appendChild(tempDiv);
         renderCardToElement(card, tempDiv);
         
-        const canvasF = await html2canvas(tempDiv.firstChild, { scale: 3 });
+        const canvasF = await html2canvas(tempDiv.firstChild, { scale: 3, useCORS: true });
         const imgF = canvasF.toDataURL('image/png');
 
-        // Capturar Dorso Actual
         const canvasB = await html2canvas(backContainer, { scale: 3, useCORS: true });
         const imgB = canvasB.toDataURL('image/png');
 
-        // Posicionamiento en A4 Apaisada
-        const xFront = 20, xBack = 105, y = 55;
+        // Layout A4 Apaisada (297mm x 210mm)
         const w = 80, h = 100;
+        const xFront = 60, xBack = 150, y = 55;
 
         doc.addImage(imgF, 'PNG', xFront, y, w, h);
         doc.addImage(imgB, 'PNG', xBack, y, w, h);
 
-        // Dibujar Marcas de Corte
-        doc.setDrawColor(180);
+        // Marcas de Corte
+        doc.setDrawColor(200);
         doc.setLineWidth(0.1);
-        // Esquinas y centros
-        const markers = [xFront, xFront+w, xBack+w, xBack];
-        markers.forEach(x => {
-            doc.line(x, y-5, x, y-2); // Arriba
-            doc.line(x, y+h+2, x, y+h+5); // Abajo
+        [xFront, xFront + w, xBack, xBack + w].forEach(x => {
+            doc.line(x, y - 5, x, y - 2);
+            doc.line(x, y + h + 2, x, y + h + 5);
+        });
+        [y, y + h].forEach(currY => {
+            doc.line(xFront - 5, currY, xFront - 2, currY);
+            doc.line(xBack + w + 2, currY, xBack + w + 5, currY);
         });
         
         document.body.removeChild(tempDiv);
     }
-    doc.save(`Grupo_${currentGroupCards[0].tema}.pdf`);
+    doc.save(`Tarjetas_${currentGroupCards[0].tema}.pdf`);
 }
 
-// 4. UI: RECENT CARDS
+// 4. UI: CARDS RECIENTES
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     carouselContainer.innerHTML = '';
     Object.keys(db).forEach(tema => {
         const div = document.createElement('div');
-        div.className = "flex-shrink-0 w-32 p-3 bg-white border border-outline-variant rounded-lg cursor-pointer hover:border-primary";
+        div.className = "flex-shrink-0 w-32 p-3 bg-white border border-outline-variant rounded-lg cursor-pointer hover:border-primary transition-all";
         div.innerHTML = `
-            <p class="text-[9px] font-bold uppercase truncate">${tema}</p>
-            <p class="text-[8px] text-gray-500">${db[tema].length} Cards</p>
-            <button onclick="event.stopPropagation(); deleteGroup('${tema}')" class="text-[7px] text-red-500 mt-1 uppercase">Eliminar</button>
+            <p class="text-[9px] font-bold uppercase truncate text-primary">${tema}</p>
+            <p class="text-[8px] text-gray-500">${db[tema].length} Tarjetas</p>
+            <div class="flex gap-2 mt-2">
+                <button onclick="event.stopPropagation(); deleteGroup('${tema}')" class="text-[7px] text-red-500 uppercase font-bold">Eliminar</button>
+            </div>
         `;
         div.onclick = () => selectGroup(tema);
         carouselContainer.appendChild(div);
@@ -482,7 +500,7 @@ function renderRecentGroups() {
 }
 
 window.deleteGroup = (tema) => {
-    if(confirm("¿Eliminar grupo?")) {
+    if(confirm(`¿Deseas eliminar el grupo "${tema}"?`)) {
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete db[tema];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -490,7 +508,7 @@ window.deleteGroup = (tema) => {
     }
 }
 
-// Navegación de carrusel superior
+// Navegación Carousel
 document.querySelector('button:has([data-icon="chevron_right"])').onclick = () => {
     if(currentPreviewIndex < currentGroupCards.length - 1) {
         currentPreviewIndex++;
@@ -504,14 +522,16 @@ document.querySelector('button:has([data-icon="chevron_left"])').onclick = () =>
     }
 };
 
-// Eventos de Inputs
+// Eventos de Archivos e Inputs
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
+fileInput.accept = 'image/*';
 fileInput.onchange = (e) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
         currentDorsoBase64 = ev.target.result;
-        document.querySelector('.card-ratio.bg-primary img').src = currentDorsoBase64;
+        const imgEl = document.querySelector('.card-ratio.bg-primary img');
+        if(imgEl) imgEl.src = currentDorsoBase64;
     };
     reader.readAsDataURL(e.target.files[0]);
 };
@@ -520,6 +540,7 @@ document.querySelector('button:has([data-icon="image"])').onclick = () => fileIn
 document.querySelector('button.bg-on-surface').onclick = (e) => { e.preventDefault(); saveCard(); };
 if(printBtn) printBtn.onclick = exportA4;
 
+// Escucha en tiempo real para la preview
 Object.values(inputs).forEach(el => el && el.addEventListener('input', () => {
     const data = {
         situacion: inputs.situacion.value,
@@ -530,7 +551,11 @@ Object.values(inputs).forEach(el => el && el.addEventListener('input', () => {
     renderCardToElement(data, '.card-ratio.bg-white');
 }));
 
-document.addEventListener('DOMContentLoaded', renderRecentGroups);
+document.addEventListener('DOMContentLoaded', () => {
+    renderRecentGroups();
+    // Render inicial vacío
+    renderCardToElement({situacion:1, rol:'Rol', tema:'Tema', desarrollo:''}, '.card-ratio.bg-white');
+});
 </script>
 
 
