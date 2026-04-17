@@ -633,7 +633,100 @@
 
 
 
+<script>
+(function () {
 
+    function findExportButton() {
+        return Array.from(document.querySelectorAll('button'))
+            .find(btn => btn.textContent
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toUpperCase()
+                .includes('EXPORTAR'));
+    }
+
+    async function exportA4_SAFE() {
+
+        try {
+            if (!window.html2canvas || !window.jspdf) {
+                alert("Faltan librerías (html2canvas / jsPDF)");
+                return;
+            }
+
+            if (!window.currentGroupCards || window.currentGroupCards.length === 0) {
+                alert("No hay tarjetas para exportar");
+                return;
+            }
+
+            const cards = document.querySelectorAll('.card-ratio');
+
+            if (cards.length < 2) {
+                alert("No se encontraron las tarjetas");
+                return;
+            }
+
+            const front = cards[0];
+            const back = cards[1];
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+
+            const canvasBack = await html2canvas(back, {
+                scale: 3,
+                backgroundColor: "#ffffff",
+                useCORS: true
+            });
+
+            const imgBack = canvasBack.toDataURL('image/png');
+
+            for (let i = 0; i < window.currentGroupCards.length; i++) {
+
+                if (i > 0) doc.addPage();
+
+                const canvasFront = await html2canvas(front, {
+                    scale: 3,
+                    backgroundColor: "#ffffff",
+                    useCORS: true
+                });
+
+                const imgFront = canvasFront.toDataURL('image/png');
+
+                doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
+                doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
+            }
+
+            doc.save("PlayRole.pdf");
+
+        } catch (e) {
+            console.error("EXPORT ERROR:", e);
+            alert("Error exportando PDF (ver consola)");
+        }
+    }
+
+    function initFix() {
+
+        const btn = findExportButton();
+
+        if (!btn) {
+            console.warn("Botón exportar no encontrado (fix)");
+            return;
+        }
+
+        // 🔥 NO rompemos eventos existentes, solo agregamos uno nuevo
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            exportA4_SAFE();
+        });
+
+        console.log("✅ Fix exportar activo");
+    }
+
+    // Espera a que TODO cargue (evita romper tu app)
+    window.addEventListener('load', initFix);
+
+})();
+</script>
 
 
 
