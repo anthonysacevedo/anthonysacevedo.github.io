@@ -1,39 +1,59 @@
-// ===============================
-// FIX EXPORTAR PDF (SIN ROMPER NADA)
-// ===============================
+const STORAGE_KEY = 'playrole_v5_db';
 
-function getPrintButton() {
-    // Busca el botón de forma ROBUSTA (no depende de includes frágil)
-    return Array.from(document.querySelectorAll('button'))
-        .find(btn => btn.textContent.replace(/\s+/g, ' ').trim().toUpperCase() === 'EXPORTAR PDF');
+let currentGroupCards = [];
+let currentPreviewIndex = 0;
+let selectedTema = null;
+
+// ===============================
+// SELECTORES SEGUROS
+// ===============================
+function getUI() {
+    const ratios = document.querySelectorAll('.card-ratio');
+
+    return {
+        front: ratios[0] || null,
+        back: ratios[1] || null,
+        carousel: document.querySelector('.flex.gap-4.overflow-x-auto') || null,
+        buttons: document.querySelectorAll('button')
+    };
+}
+
+function getFields() {
+    const inputs = document.querySelectorAll('input');
+    const textarea = document.querySelector('textarea');
+
+    return {
+        situacion: inputs[0] || null,
+        rol: inputs[1] || null,
+        tema: inputs[2] || null,
+        desarrollo: textarea || null
+    };
 }
 
 // ===============================
-// EXPORT FUNCIÓN (NO TOCA TU DISEÑO)
+// EXPORTAR PDF (FIX REAL)
 // ===============================
 async function exportA4() {
 
-    if (!currentGroupCards || currentGroupCards.length === 0) {
-        alert("Seleccioná un grupo primero");
+    if (!currentGroupCards.length) {
+        alert("Seleccioná un grupo");
+        return;
+    }
+
+    const ui = getUI();
+
+    if (!ui.front || !ui.back) {
+        alert("No se encontraron las tarjetas");
         return;
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
 
-    const backCard = document.querySelectorAll('.card-ratio')[1];
-
-    if (!backCard) {
-        alert("No se encontró la tarjeta reverso");
-        return;
-    }
-
     try {
-        // Render reverso UNA vez
-        const canvasBack = await html2canvas(backCard, {
+        const canvasBack = await html2canvas(ui.back, {
             scale: 3,
-            backgroundColor: "#ffffff",
-            useCORS: true
+            backgroundColor: "#fff"
         });
 
         const imgBack = canvasBack.toDataURL('image/png');
@@ -42,52 +62,108 @@ async function exportA4() {
 
             if (i > 0) doc.addPage();
 
-            // 🔴 CLAVE: NO modificamos tu tarjeta original
-            const frontCard = document.querySelectorAll('.card-ratio')[0];
-
-            if (!frontCard) continue;
-
-            const canvasFront = await html2canvas(frontCard, {
+            const canvasFront = await html2canvas(ui.front, {
                 scale: 3,
-                backgroundColor: "#ffffff",
-                useCORS: true
+                backgroundColor: "#fff"
             });
 
             const imgFront = canvasFront.toDataURL('image/png');
 
-            // Posiciones A4 horizontal
             doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
             doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
         }
 
         doc.save("PlayRole.pdf");
 
-    } catch (err) {
-        console.error(err);
-        alert("Error al exportar PDF (ver consola)");
+    } catch (e) {
+        console.error(e);
+        alert("Error generando PDF");
     }
 }
 
 // ===============================
-// INIT SEGURO
+// GRUPOS (SIN TOCAR DISEÑO)
+// ===============================
+function renderRecentGroups() {
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const ui = getUI();
+
+    if (!ui.carousel) return;
+
+    ui.carousel.innerHTML = '';
+
+    Object.keys(db).forEach(tema => {
+        const div = document.createElement('div');
+
+        div.textContent = tema;
+        div.onclick = () => selectGroup(tema);
+
+        ui.carousel.appendChild(div);
+    });
+}
+
+function selectGroup(tema) {
+    selectedTema = tema;
+
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    currentGroupCards = db[tema] || [];
+
+    currentPreviewIndex = 0;
+    updatePreview();
+}
+
+function updatePreview() {
+    const ui = getUI();
+    if (!ui.front) return;
+
+    const card = currentGroupCards[currentPreviewIndex];
+    if (!card) return;
+
+    ui.front.innerText = card.desarrollo || '';
+}
+
+// ===============================
+// INIT (NO ROMPE NADA)
 // ===============================
 document.addEventListener('DOMContentLoaded', () => {
 
-    const btn = getPrintButton();
+    const ui = getUI();
+    const fields = getFields();
 
-    if (!btn) {
-        console.warn("Botón EXPORTAR PDF no encontrado");
-        return;
+    renderRecentGroups();
+
+    // GUARDAR
+    const saveBtn = Array.from(ui.buttons).find(b =>
+        b.textContent.toUpperCase().includes("GUARDAR")
+    );
+
+    if (saveBtn) {
+        saveBtn.onclick = () => {
+
+            const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const tema = fields.tema?.value || "Sin título";
+
+            if (!db[tema]) db[tema] = [];
+
+            db[tema].push({
+                situacion: fields.situacion?.value,
+                rol: fields.rol?.value,
+                tema: tema,
+                desarrollo: fields.desarrollo?.value
+            });
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+            selectGroup(tema);
+        };
     }
 
-    // 🔥 elimina eventos anteriores (clave)
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
+    // EXPORTAR (FIX)
+    const exportBtn = Array.from(ui.buttons).find(b =>
+        b.textContent.toUpperCase().includes("EXPORTAR")
+    );
 
-    newBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        exportA4();
-    });
+    if (exportBtn) {
+        exportBtn.onclick = exportA4;
+    }
 
 });
