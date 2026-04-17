@@ -1,8 +1,5 @@
 /**
- * PLAYROLE OS - BACKEND V6.8
- * - Solución definitiva al error 'addColorStop' (non-finite)
- * - Limpieza de estilos fantasmas durante la captura
- * - Ajuste de fuente 0.2pt verificado
+ * PLAYROLE OS - BACKEND V6.8 (FIX PRINT BTN)
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -19,17 +16,24 @@ const getFields = () => ({
 
 const getUI = () => {
     const ratios = document.querySelectorAll('.card-ratio');
+
     return {
         front: ratios[0],
         back: ratios[1],
         carousel: document.querySelector('.flex.gap-4.overflow-x-auto'),
-        printBtn: document.querySelector('button.signature-gradient') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('IMPRIMIR')),
-        saveBtn: document.querySelector('.bg-on-surface') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('GUARDAR'))
+
+        // ✅ FIX: Selector correcto del botón REAL
+        printBtn: Array.from(document.querySelectorAll('button'))
+            .find(b => b.textContent.includes('Exportar PDF')),
+
+        saveBtn: document.querySelector('.bg-on-surface') 
+            || Array.from(document.querySelectorAll('button'))
+                .find(b => b.innerText.includes('GUARDAR'))
     };
 };
 
 /**
- * 1. MOTOR DE RENDERIZADO (0.2pt de precisión)
+ * 1. MOTOR DE RENDERIZADO
  */
 function renderCardToElement(data, target) {
     if (!target) return;
@@ -63,16 +67,18 @@ function renderCardToElement(data, target) {
 }
 
 /**
- * 2. EXPORTACIÓN PDF (Con limpieza de estilos para evitar el error addColorStop)
+ * 2. EXPORTACIÓN PDF
  */
 async function exportA4() {
     const ui = getUI();
+
     if (!selectedTema || currentGroupCards.length === 0) {
         return alert("Por favor, selecciona un grupo de tarjetas guardadas abajo.");
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
+
     const btn = ui.printBtn;
     const originalContent = btn.innerHTML;
 
@@ -80,14 +86,12 @@ async function exportA4() {
     btn.disabled = true;
 
     try {
-        // OPCIONES ANTI-ERROR: Eliminamos sombras y gradientes que el Canvas no entiende
         const canvasOptions = {
             scale: 3,
             useCORS: true,
             backgroundColor: "#ffffff",
             logging: false,
             onclone: (clonedDoc) => {
-                // Forzamos a que todo lo clonado para la foto NO tenga gradientes ni sombras raras
                 const elements = clonedDoc.getElementsByTagName("*");
                 for (let el of elements) {
                     el.style.boxShadow = "none";
@@ -100,7 +104,6 @@ async function exportA4() {
             }
         };
 
-        // Captura Dorso
         const canvasB = await html2canvas(ui.back, canvasOptions);
         const imgB = canvasB.toDataURL('image/png');
 
@@ -108,13 +111,24 @@ async function exportA4() {
             if (i > 0) doc.addPage('a4', 'l');
 
             const tempDiv = document.createElement('div');
-            Object.assign(tempDiv.style, { position: 'fixed', top: '0', left: '-10000px', width: '80mm', height: '100mm' });
+            Object.assign(tempDiv.style, {
+                position: 'fixed',
+                top: '0',
+                left: '-10000px',
+                width: '80mm',
+                height: '100mm'
+            });
+
             document.body.appendChild(tempDiv);
-            
+
             renderCardToElement(currentGroupCards[i], tempDiv);
             await new Promise(r => setTimeout(r, 100)); 
 
-            const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), canvasOptions);
+            const canvasF = await html2canvas(
+                tempDiv.querySelector('.render-target'),
+                canvasOptions
+            );
+
             const imgF = canvasF.toDataURL('image/png');
 
             doc.addImage(imgF, 'PNG', 63.5, 55, 80, 100);
@@ -122,11 +136,12 @@ async function exportA4() {
 
             document.body.removeChild(tempDiv);
         }
-        
+
         doc.save(`PlayRole_${selectedTema}.pdf`);
+
     } catch (err) {
         console.error("Fallo en PDF:", err);
-        alert("Error de renderizado. Intenta usar un navegador basado en Chrome.");
+        alert("Error de renderizado. Intenta usar Chrome.");
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
@@ -140,13 +155,15 @@ function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     const ui = getUI();
     if (!ui.carousel) return;
+
     ui.carousel.innerHTML = '';
-    
+
     Object.keys(db).forEach(tema => {
         const isActive = (tema === selectedTema);
+
         const div = document.createElement('div');
         div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-blue-600 ring-2 ring-blue-100 shadow-md' : 'border-slate-200 opacity-60'}`;
-        
+
         div.innerHTML = `
             <span class="text-[8px] font-bold truncate w-full text-center">${tema}</span>
             <div class="text-center">
@@ -154,6 +171,7 @@ function renderRecentGroups() {
                 <button onclick="event.stopPropagation(); deleteGroup('${tema}')" class="text-[8px] text-red-500 font-bold hover:underline">BORRAR</button>
             </div>
         `;
+
         div.onclick = () => selectGroup(tema);
         ui.carousel.appendChild(div);
     });
@@ -186,39 +204,60 @@ function updatePreview() {
 }
 
 /**
- * 4. INICIALIZACIÓN
+ * 4. INIT
  */
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentGroups();
+
     const ui = getUI();
     const fields = getFields();
 
-    // Flechas
     const prev = document.querySelector('button:has([data-icon="chevron_left"])') || document.querySelectorAll('button')[0];
     const next = document.querySelector('button:has([data-icon="chevron_right"])') || document.querySelectorAll('button')[1];
 
-    if(prev) prev.onclick = () => { if(currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); } };
-    if(next) next.onclick = () => { if(currentPreviewIndex < currentGroupCards.length - 1) { currentPreviewIndex++; updatePreview(); } };
+    if(prev) prev.onclick = () => {
+        if(currentPreviewIndex > 0) {
+            currentPreviewIndex--;
+            updatePreview();
+        }
+    };
+
+    if(next) next.onclick = () => {
+        if(currentPreviewIndex < currentGroupCards.length - 1) {
+            currentPreviewIndex++;
+            updatePreview();
+        }
+    };
 
     // Guardar
     if(ui.saveBtn) ui.saveBtn.onclick = (e) => {
         e.preventDefault();
+
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         const t = fields.tema.value.trim() || "Sin Título";
+
         if (!db[t]) db[t] = [];
+
         db[t].push({
             situacion: fields.situacion.value,
             rol: fields.rol.value,
             tema: t,
             desarrollo: fields.desarrollo.value
         });
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
         selectGroup(t);
     };
 
-    if(ui.printBtn) ui.printBtn.addEventListener('click', exportA4);
+    // ✅ FIX DEFINITIVO BOTÓN PRINT
+    if (ui.printBtn) {
+        ui.printBtn.onclick = (e) => {
+            e.preventDefault();
+            exportA4();
+        };
+    }
 
-    // Live Preview
+    // Live preview
     Object.values(fields).forEach(el => {
         if(el) el.addEventListener('input', () => {
             renderCardToElement({
@@ -230,5 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    renderCardToElement({situacion:1, rol:'Facilitador', tema:'Tema', desarrollo:''}, ui.front);
+    renderCardToElement(
+        {situacion:1, rol:'Facilitador', tema:'Tema', desarrollo:''},
+        ui.front
+    );
 });
