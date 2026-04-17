@@ -1,5 +1,8 @@
 /**
- * PLAYROLE OS - BACKEND V6.3 (FIXED GRADIENT & FONT SCALING)
+ * PLAYROLE OS - BACKEND V6.5
+ * - Renderizado Vectorial (Texto real en PDF)
+ * - Ajuste de tipografía inteligente (pasos de 0.2pt)
+ * - Limpieza de lógica de gradientes
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -7,7 +10,7 @@ let currentGroupCards = [];
 let currentPreviewIndex = 0;
 let selectedTema = null;
 
-// Selectores precisos
+// Selectores de interfaz
 const getFields = () => ({
     situacion: document.querySelector('input[type="number"]'),
     rol: document.querySelector('input[placeholder*="Facilitador"]'),
@@ -17,21 +20,21 @@ const getFields = () => ({
 
 const getUI = () => ({
     front: document.querySelector('.card-ratio.bg-white'),
-    // El dorso es el segundo elemento con clase .card-ratio
     back: document.querySelectorAll('.card-ratio')[1],
     carousel: document.querySelector('.flex.gap-4.overflow-x-auto'),
     printBtn: document.querySelector('button.signature-gradient.shadow-2xl')
 });
 
 /**
- * 1. MOTOR DE RENDERIZADO CON AJUSTE DE 0.2pt
+ * 1. MOTOR DE RENDERIZADO CON AUTO-AJUSTE (0.2pt)
  */
 function renderCardToElement(data, target) {
     if (!target) return;
     const fontSizeBase = 9;
 
+    // Estructura limpia sin gradientes
     target.innerHTML = `
-        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; border: 0.1pt solid #eee;">
             <div style="display: flex; justify-content: space-between; border-bottom: 0.8pt solid black; padding-bottom: 2mm; font-weight: 800; font-size: 9pt;">
                 <span>SITUACIÓN Nº ${data.situacion || '1'}</span>
                 <span style="color: #004ac6;">${(data.rol || '').toUpperCase()}</span>
@@ -50,7 +53,7 @@ function renderCardToElement(data, target) {
     let size = fontSizeBase;
 
     if (text && box) {
-        // Ajuste inteligente en pasos de 0.2pt
+        // Reducción inteligente en pasos de 0.2pt
         while (text.scrollHeight > box.clientHeight && size > 4) {
             size -= 0.2;
             text.style.fontSize = `${size.toFixed(1)}pt`;
@@ -59,62 +62,64 @@ function renderCardToElement(data, target) {
 }
 
 /**
- * 2. EXPORTACIÓN PDF (REPARADA PARA GRADIENTES)
+ * 2. EXPORTACIÓN VECTORIAL
  */
 async function exportA4() {
     const ui = getUI();
     if (!selectedTema || currentGroupCards.length === 0) {
-        return alert("Selecciona un grupo en 'Recent Cards' para imprimir.");
+        return alert("Selecciona un grupo en 'Recent Cards' primero.");
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
+    const doc = new jsPDF({
+        orientation: 'l',
+        unit: 'mm',
+        format: 'a4'
+    });
+
     const btnLabel = ui.printBtn.innerHTML;
-    
-    ui.printBtn.innerHTML = 'PROCESANDO...';
+    ui.printBtn.innerHTML = 'GENERANDO PDF...';
     ui.printBtn.disabled = true;
 
     try {
-        // FIX PARA EL ERROR DE GRADIENTE: Forzamos dimensiones y esperamos al render
-        const canvasB = await html2canvas(ui.back, { 
-            scale: 2, 
-            useCORS: true,
-            allowTaint: true,
-            // Forzamos dimensiones para que addColorStop no reciba valores infinitos
-            width: ui.back.offsetWidth,
-            height: ui.back.offsetHeight
-        });
-        const imgB = canvasB.toDataURL('image/png');
-
         for (let i = 0; i < currentGroupCards.length; i++) {
             if (i > 0) doc.addPage('a4', 'l');
 
-            const tempDiv = document.createElement('div');
-            Object.assign(tempDiv.style, {
-                position: 'absolute', top: '-10000px', left: '-10000px',
-                width: '80mm', height: '100mm'
+            // Contenedor temporal para renderizar el frente
+            const tempF = document.createElement('div');
+            Object.assign(tempF.style, { position: 'absolute', top: '-10000px', width: '80mm' });
+            document.body.appendChild(tempF);
+            renderCardToElement(currentGroupCards[i], tempF);
+
+            // Clonamos el dorso actual de tu UI
+            const tempB = ui.back.cloneNode(true);
+            Object.assign(tempB.style, { position: 'absolute', top: '-10000px', left: '-5000px', width: '80mm', height: '100mm' });
+            document.body.appendChild(tempB);
+
+            // Renderizado de objetos al PDF (Frente)
+            await doc.html(tempF, {
+                x: 63.5,
+                y: 55,
+                width: 80,
+                windowWidth: 302 // Ajuste de escala para 80mm
             });
-            document.body.appendChild(tempDiv);
-            
-            renderCardToElement(currentGroupCards[i], tempDiv);
-            
-            // Espera de seguridad para fuentes y renders
-            await new Promise(r => setTimeout(r, 250));
 
-            const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), { scale: 2 });
-            const imgF = canvasF.toDataURL('image/png');
+            // Renderizado de objetos al PDF (Dorso)
+            await doc.html(tempB, {
+                x: 153.5,
+                y: 55,
+                width: 80,
+                windowWidth: 302
+            });
 
-            // Posiciones en A4 (Paisaje)
-            doc.addImage(imgF, 'PNG', 63.5, 55, 80, 100);
-            doc.addImage(imgB, 'PNG', 153.5, 55, 80, 100);
-
-            document.body.removeChild(tempDiv);
+            document.body.removeChild(tempF);
+            document.body.removeChild(tempB);
         }
-        
+
         doc.save(`PlayRole_${selectedTema}.pdf`);
     } catch (err) {
-        console.error("Error técnico:", err);
-        alert("Error al generar el PDF. El degradado del dorso está causando un conflicto visual.");
+        console.error("Error en exportación:", err);
+        alert("Error al generar el PDF vectorial.");
     } finally {
         ui.printBtn.innerHTML = btnLabel;
         ui.printBtn.disabled = false;
@@ -122,7 +127,7 @@ async function exportA4() {
 }
 
 /**
- * 3. UI Y PERSISTENCIA
+ * 3. LÓGICA DE GRUPOS Y UI
  */
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -133,10 +138,10 @@ function renderRecentGroups() {
     Object.keys(db).forEach(tema => {
         const isActive = (tema === selectedTema);
         const div = document.createElement('div');
-        div.className = `flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-outline-variant/30 grayscale opacity-60'}`;
+        div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-slate-200 opacity-60'}`;
         
         div.innerHTML = `
-            <span class="text-[8px] font-bold text-on-surface-variant truncate w-full text-center">${tema}</span>
+            <span class="text-[8px] font-bold truncate w-full text-center">${tema}</span>
             <div class="text-center">
                 <p class="text-[10px] font-black text-primary">${db[tema].length} CARDS</p>
                 <button onclick="event.stopPropagation(); deleteGroup('${tema}')" class="text-[8px] text-red-500 font-bold hover:underline">BORRAR</button>
@@ -157,7 +162,7 @@ window.selectGroup = (tema) => {
 };
 
 window.deleteGroup = (tema) => {
-    if(confirm(`¿Eliminar grupo "${tema}"?`)) {
+    if(confirm(`¿Borrar grupo "${tema}"?`)) {
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete db[tema];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -174,21 +179,21 @@ function updatePreview() {
 }
 
 /**
- * 4. NAVEGACIÓN Y LISTENERS
+ * 4. LISTENERS
  */
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentGroups();
     const ui = getUI();
     const fields = getFields();
 
-    // Flechas de navegación
+    // Navegación
     const prev = document.querySelector('button:has([data-icon="chevron_left"])');
     const next = document.querySelector('button:has([data-icon="chevron_right"])');
 
     if(prev) prev.onclick = () => { if(currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); } };
-    if(next) next.onclick = () => { if(currentPreviewIndex < currentGroupCards.length -1) { currentPreviewIndex++; updatePreview(); } };
+    if(next) next.onclick = () => { if(currentPreviewIndex < currentGroupCards.length - 1) { currentPreviewIndex++; updatePreview(); } };
 
-    // Guardar
+    // Guardar tarjeta
     const saveBtn = document.querySelector('button.bg-on-surface');
     if(saveBtn) saveBtn.onclick = (e) => {
         e.preventDefault();
@@ -219,6 +224,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Render inicial
     renderCardToElement({situacion:1, rol:'Facilitador', tema:'Tema', desarrollo:''}, ui.front);
 });
