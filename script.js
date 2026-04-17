@@ -90,15 +90,8 @@ function selectGroup(tema) {
 // ===============================
 async function exportA4() {
 
-    if (!currentGroupCards.length) {
-        alert("Seleccioná un grupo");
-        return;
-    }
-
-    const ui = getUI();
-
-    if (!ui.front || !ui.back) {
-        alert("No se encontraron tarjetas");
+    if (!currentGroupCards || currentGroupCards.length === 0) {
+        alert("Seleccioná un grupo primero");
         return;
     }
 
@@ -110,36 +103,69 @@ async function exportA4() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
 
-    try {
-        const canvasBack = await html2canvas(ui.back, {
-            scale: 2,
-            backgroundColor: "#fff"
-        });
+    const uiCards = document.querySelectorAll('.card-ratio');
+    const backCard = uiCards[1];
 
-        const imgBack = canvasBack.toDataURL('image/png');
+    if (!backCard) {
+        alert("No se encontró el dorso");
+        return;
+    }
 
-        for (let i = 0; i < currentGroupCards.length; i++) {
+    // Render del dorso UNA sola vez
+    const canvasBack = await html2canvas(backCard, {
+        scale: 3,
+        backgroundColor: "#ffffff",
+        useCORS: true
+    });
 
-            if (i > 0) doc.addPage();
+    const imgBack = canvasBack.toDataURL('image/png');
 
-            const canvasFront = await html2canvas(ui.front, {
-                scale: 2,
-                backgroundColor: "#fff"
-            });
+    for (let i = 0; i < currentGroupCards.length; i++) {
 
-            const imgFront = canvasFront.toDataURL('image/png');
+        if (i > 0) doc.addPage();
 
-            doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
-            doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
+        const data = currentGroupCards[i];
+
+        // 🔥 Creamos una tarjeta TEMPORAL (NO TOCA TU UI)
+        const temp = document.createElement('div');
+
+        temp.style.position = 'fixed';
+        temp.style.left = '-9999px';
+        temp.style.top = '0';
+        temp.style.width = '80mm';
+        temp.style.height = '100mm';
+
+        document.body.appendChild(temp);
+
+        // ⚠️ USA TU FUNCIÓN ORIGINAL (clave para no romper diseño)
+        if (typeof renderCardToElement === "function") {
+            renderCardToElement(data, temp);
+        } else {
+            // fallback mínimo si no existe
+            temp.innerText = data.desarrollo || '';
         }
 
-        doc.save(`PlayRole_${selectedTema || 'export'}.pdf`);
+        // Espera a que renderice bien
+        await new Promise(r => setTimeout(r, 80));
 
-    } catch (e) {
-        console.error(e);
-        alert("Error generando PDF");
+        const canvasFront = await html2canvas(temp.firstElementChild || temp, {
+            scale: 3,
+            backgroundColor: "#ffffff",
+            useCORS: true
+        });
+
+        const imgFront = canvasFront.toDataURL('image/png');
+
+        // POSICIÓN IMPRIMIBLE
+        doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
+        doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
+
+        document.body.removeChild(temp);
     }
+
+    doc.save(`PlayRole_${selectedTema || 'cards'}.pdf`);
 }
+
 
 // ===============================
 // INIT
