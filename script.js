@@ -1,8 +1,8 @@
 /**
- * PLAYROLE OS - BACKEND V6.6
- * - Sistema de captura de alta fidelidad
- * - Ajuste de tipografía inteligente (pasos de 0.2pt)
- * - Selectores de respaldo para evitar errores de impresión
+ * PLAYROLE OS - BACKEND V6.7
+ * - Selectores por contenido de texto (más robusto)
+ * - Ajuste de fuente 0.2pt verificado
+ * - Motor de captura de alta fidelidad
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -10,13 +10,13 @@ let currentGroupCards = [];
 let currentPreviewIndex = 0;
 let selectedTema = null;
 
-// Selectores robustos
-const getFields = () => ({
-    situacion: document.querySelector('input[type="number"]'),
-    rol: document.querySelector('input[placeholder*="Facilitador"]'),
-    tema: document.querySelector('input[placeholder*="Resolution"]'),
-    desarrollo: document.querySelector('textarea')
-});
+// FUNCIONES DE APOYO PARA ENCONTRAR ELEMENTOS
+const findBtnByText = (text) => {
+    return Array.from(document.querySelectorAll('button')).find(b => 
+        b.innerText.toUpperCase().includes(text.toUpperCase()) || 
+        b.innerHTML.toUpperCase().includes(text.toUpperCase())
+    );
+};
 
 const getUI = () => {
     const ratios = document.querySelectorAll('.card-ratio');
@@ -24,19 +24,21 @@ const getUI = () => {
         front: ratios[0],
         back: ratios[1],
         carousel: document.querySelector('.flex.gap-4.overflow-x-auto'),
-        printBtn: document.querySelector('button.signature-gradient')
+        // Buscamos el botón que diga "IMPRIMIR" o "EXPORTAR"
+        printBtn: findBtnByText('IMPRIMIR') || findBtnByText('EXPORTAR') || document.querySelector('.signature-gradient'),
+        saveBtn: findBtnByText('GUARDAR') || document.querySelector('.bg-on-surface')
     };
 };
 
 /**
- * 1. MOTOR DE RENDERIZADO CON AUTO-AJUSTE (0.2pt)
+ * 1. MOTOR DE RENDERIZADO (Ajuste 0.2pt)
  */
 function renderCardToElement(data, target) {
     if (!target) return;
     const fontSizeBase = 9;
 
     target.innerHTML = `
-        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; border: 0.2pt solid #eee;">
             <div style="display: flex; justify-content: space-between; border-bottom: 0.8pt solid black; padding-bottom: 2mm; font-weight: 800; font-size: 9pt;">
                 <span>SITUACIÓN Nº ${data.situacion || '1'}</span>
                 <span style="color: #004ac6;">${(data.rol || '').toUpperCase()}</span>
@@ -55,7 +57,6 @@ function renderCardToElement(data, target) {
     let size = fontSizeBase;
 
     if (text && box) {
-        // Reducción en pasos de 0.2pt
         while (text.scrollHeight > box.clientHeight && size > 4) {
             size -= 0.2;
             text.style.fontSize = `${size.toFixed(1)}pt`;
@@ -64,42 +65,44 @@ function renderCardToElement(data, target) {
 }
 
 /**
- * 2. EXPORTACIÓN PDF (REDISEÑADA)
+ * 2. EXPORTACIÓN PDF
  */
 async function exportA4() {
+    console.log("Iniciando exportación...");
     const ui = getUI();
+    
     if (!selectedTema || currentGroupCards.length === 0) {
-        return alert("Selecciona un grupo en 'Recent Cards' primero.");
+        alert("Primero selecciona un grupo en 'Recent Cards' (debe quedar resaltado).");
+        return;
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
     const btn = ui.printBtn;
-    const originalText = btn.innerHTML;
+    const originalText = btn ? btn.innerHTML : '';
     
-    btn.innerHTML = 'GENERANDO...';
-    btn.disabled = true;
+    if(btn) {
+        btn.innerHTML = 'PROCESANDO...';
+        btn.disabled = true;
+    }
 
     try {
-        // Capturamos el dorso una sola vez
         const canvasB = await html2canvas(ui.back, { scale: 3, useCORS: true });
         const imgB = canvasB.toDataURL('image/png');
 
         for (let i = 0; i < currentGroupCards.length; i++) {
             if (i > 0) doc.addPage('a4', 'l');
 
-            // Renderizado temporal
             const tempDiv = document.createElement('div');
             Object.assign(tempDiv.style, { position: 'fixed', top: '0', left: '-5000px', width: '80mm', height: '100mm' });
             document.body.appendChild(tempDiv);
             
             renderCardToElement(currentGroupCards[i], tempDiv);
-            await new Promise(r => setTimeout(r, 100)); // Pequeña espera para el render
+            await new Promise(r => setTimeout(r, 150)); 
 
             const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), { scale: 3 });
             const imgF = canvasF.toDataURL('image/png');
 
-            // Posiciones exactas
             doc.addImage(imgF, 'PNG', 63.5, 55, 80, 100);
             doc.addImage(imgB, 'PNG', 153.5, 55, 80, 100);
 
@@ -108,16 +111,18 @@ async function exportA4() {
         
         doc.save(`PlayRole_${selectedTema}.pdf`);
     } catch (err) {
-        console.error("Error en PDF:", err);
-        alert("Error al generar el archivo. Por favor, intenta de nuevo.");
+        console.error("Fallo en PDF:", err);
+        alert("Hubo un problema al generar el archivo.");
     } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        if(btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 }
 
 /**
- * 3. LÓGICA DE GRUPOS
+ * 3. GESTIÓN DE UI
  */
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -128,7 +133,7 @@ function renderRecentGroups() {
     Object.keys(db).forEach(tema => {
         const isActive = (tema === selectedTema);
         const div = document.createElement('div');
-        div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/20 shadow-lg' : 'border-slate-200 opacity-60'}`;
+        div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/30 shadow-md' : 'border-slate-200 opacity-60'}`;
         
         div.innerHTML = `
             <span class="text-[8px] font-bold truncate w-full text-center">${tema}</span>
@@ -156,7 +161,7 @@ window.deleteGroup = (tema) => {
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete db[tema];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-        if(selectedTema === tema) { selectedTema = null; currentGroupCards = []; }
+        if(selectedTema === tema) selectedTema = null;
         renderRecentGroups();
     }
 };
@@ -169,23 +174,27 @@ function updatePreview() {
 }
 
 /**
- * 4. EVENTOS
+ * 4. INICIALIZACIÓN
  */
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentGroups();
     const ui = getUI();
-    const fields = getFields();
+    const fields = {
+        situacion: document.querySelector('input[type="number"]'),
+        rol: document.querySelector('input[placeholder*="Facilitador"]'),
+        tema: document.querySelector('input[placeholder*="Resolution"]'),
+        desarrollo: document.querySelector('textarea')
+    };
 
-    // Navegación (Flechas)
-    const prev = document.querySelector('button:has([data-icon="chevron_left"])');
-    const next = document.querySelector('button:has([data-icon="chevron_right"])');
+    // Flechas
+    const prev = document.querySelector('button:has([data-icon="chevron_left"])') || document.querySelectorAll('button')[0];
+    const next = document.querySelector('button:has([data-icon="chevron_right"])') || document.querySelectorAll('button')[1];
 
     if(prev) prev.onclick = () => { if(currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); } };
     if(next) next.onclick = () => { if(currentPreviewIndex < currentGroupCards.length - 1) { currentPreviewIndex++; updatePreview(); } };
 
-    // Guardado
-    const saveBtn = document.querySelector('button.bg-on-surface');
-    if(saveBtn) saveBtn.onclick = (e) => {
+    // Acción Guardar
+    if(ui.saveBtn) ui.saveBtn.onclick = (e) => {
         e.preventDefault();
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         const t = fields.tema.value.trim() || "Sin Título";
@@ -200,7 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
         selectGroup(t);
     };
 
-    if(ui.printBtn) ui.printBtn.onclick = exportA4;
+    // Acción Imprimir (Asignación manual para asegurar)
+    if(ui.printBtn) {
+        ui.printBtn.addEventListener('click', exportA4);
+        console.log("Botón de impresión vinculado correctamente.");
+    } else {
+        console.warn("No se encontró el botón de impresión.");
+    }
 
     // Live Preview
     Object.values(fields).forEach(el => {
