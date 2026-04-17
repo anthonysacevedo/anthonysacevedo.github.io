@@ -1,5 +1,8 @@
 /**
- * PLAYROLE OS - BACKEND V6.8 (FIX PRINT BTN)
+ * PLAYROLE OS - BACKEND V6.8 (FIX ESTABLE)
+ * - NO se modifica estructura de tarjetas
+ * - FIX botón exportar
+ * - FIX error includes()
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -22,9 +25,9 @@ const getUI = () => {
         back: ratios[1],
         carousel: document.querySelector('.flex.gap-4.overflow-x-auto'),
 
-        // ✅ FIX: Selector correcto del botón REAL
+        // ✅ FIX BOTÓN EXPORTAR (sin tocar HTML)
         printBtn: Array.from(document.querySelectorAll('button'))
-            .find(b => b.textContent.includes('Exportar PDF')),
+            .find(b => b.textContent.trim().toUpperCase().includes('EXPORTAR PDF')),
 
         saveBtn: document.querySelector('.bg-on-surface') 
             || Array.from(document.querySelectorAll('button'))
@@ -33,7 +36,7 @@ const getUI = () => {
 };
 
 /**
- * 1. MOTOR DE RENDERIZADO
+ * 1. MOTOR DE RENDERIZADO (SIN CAMBIOS)
  */
 function renderCardToElement(data, target) {
     if (!target) return;
@@ -67,7 +70,7 @@ function renderCardToElement(data, target) {
 }
 
 /**
- * 2. EXPORTACIÓN PDF
+ * 2. EXPORTACIÓN PDF (FIX CRÍTICO)
  */
 async function exportA4() {
     const ui = getUI();
@@ -93,10 +96,14 @@ async function exportA4() {
             logging: false,
             onclone: (clonedDoc) => {
                 const elements = clonedDoc.getElementsByTagName("*");
+
                 for (let el of elements) {
                     el.style.boxShadow = "none";
                     el.style.textShadow = "none";
-                    if (el.style.backgroundImage.includes('gradient')) {
+
+                    // ✅ FIX ERROR includes()
+                    const bg = el.style.backgroundImage || "";
+                    if (bg && bg.includes('gradient')) {
                         el.style.backgroundImage = "none";
                         el.style.backgroundColor = "#ffffff";
                     }
@@ -141,7 +148,7 @@ async function exportA4() {
 
     } catch (err) {
         console.error("Fallo en PDF:", err);
-        alert("Error de renderizado. Intenta usar Chrome.");
+        alert("Error de renderizado. Revisa consola.");
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
@@ -149,7 +156,7 @@ async function exportA4() {
 }
 
 /**
- * 3. LÓGICA DE GRUPOS
+ * 3. LÓGICA DE GRUPOS (SIN CAMBIOS)
  */
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -249,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectGroup(t);
     };
 
-    // ✅ FIX DEFINITIVO BOTÓN PRINT
+    // ✅ FIX BOTÓN EXPORTAR
     if (ui.printBtn) {
         ui.printBtn.onclick = (e) => {
             e.preventDefault();
