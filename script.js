@@ -1,8 +1,8 @@
 /**
- * PLAYROLE OS - BACKEND V6.7
- * - Selectores por contenido de texto (más robusto)
+ * PLAYROLE OS - BACKEND V6.8
+ * - Solución definitiva al error 'addColorStop' (non-finite)
+ * - Limpieza de estilos fantasmas durante la captura
  * - Ajuste de fuente 0.2pt verificado
- * - Motor de captura de alta fidelidad
  */
 
 const STORAGE_KEY = 'playrole_v5_db';
@@ -10,13 +10,12 @@ let currentGroupCards = [];
 let currentPreviewIndex = 0;
 let selectedTema = null;
 
-// FUNCIONES DE APOYO PARA ENCONTRAR ELEMENTOS
-const findBtnByText = (text) => {
-    return Array.from(document.querySelectorAll('button')).find(b => 
-        b.innerText.toUpperCase().includes(text.toUpperCase()) || 
-        b.innerHTML.toUpperCase().includes(text.toUpperCase())
-    );
-};
+const getFields = () => ({
+    situacion: document.querySelector('input[type="number"]'),
+    rol: document.querySelector('input[placeholder*="Facilitador"]'),
+    tema: document.querySelector('input[placeholder*="Resolution"]'),
+    desarrollo: document.querySelector('textarea')
+});
 
 const getUI = () => {
     const ratios = document.querySelectorAll('.card-ratio');
@@ -24,26 +23,25 @@ const getUI = () => {
         front: ratios[0],
         back: ratios[1],
         carousel: document.querySelector('.flex.gap-4.overflow-x-auto'),
-        // Buscamos el botón que diga "IMPRIMIR" o "EXPORTAR"
-        printBtn: findBtnByText('IMPRIMIR') || findBtnByText('EXPORTAR') || document.querySelector('.signature-gradient'),
-        saveBtn: findBtnByText('GUARDAR') || document.querySelector('.bg-on-surface')
+        printBtn: document.querySelector('button.signature-gradient') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('IMPRIMIR')),
+        saveBtn: document.querySelector('.bg-on-surface') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('GUARDAR'))
     };
 };
 
 /**
- * 1. MOTOR DE RENDERIZADO (Ajuste 0.2pt)
+ * 1. MOTOR DE RENDERIZADO (0.2pt de precisión)
  */
 function renderCardToElement(data, target) {
     if (!target) return;
     const fontSizeBase = 9;
 
     target.innerHTML = `
-        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; border: 0.2pt solid #eee;">
+        <div class="render-target" style="width: 80mm; height: 100mm; background: #ffffff !important; font-family: 'Inter', sans-serif; color: #000; padding: 6mm; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; border: 0.1pt solid #000;">
             <div style="display: flex; justify-content: space-between; border-bottom: 0.8pt solid black; padding-bottom: 2mm; font-weight: 800; font-size: 9pt;">
                 <span>SITUACIÓN Nº ${data.situacion || '1'}</span>
                 <span style="color: #004ac6;">${(data.rol || '').toUpperCase()}</span>
             </div>
-            <div class="content-box" style="flex: 1; margin-top: 5mm; overflow: hidden; position: relative;">
+            <div class="content-box" style="flex: 1; margin-top: 5mm; overflow: hidden; position: relative; background: #ffffff !important;">
                 <p style="font-size: 7pt; font-style: italic; color: #434655; margin-bottom: 2mm;">Lee atentamente la situación y acciona.</p>
                 <div class="dynamic-text" style="font-size: ${fontSizeBase}pt; line-height: 1.3; word-wrap: break-word; white-space: pre-wrap;">${data.desarrollo || ''}</div>
             </div>
@@ -65,42 +63,58 @@ function renderCardToElement(data, target) {
 }
 
 /**
- * 2. EXPORTACIÓN PDF
+ * 2. EXPORTACIÓN PDF (Con limpieza de estilos para evitar el error addColorStop)
  */
 async function exportA4() {
-    console.log("Iniciando exportación...");
     const ui = getUI();
-    
     if (!selectedTema || currentGroupCards.length === 0) {
-        alert("Primero selecciona un grupo en 'Recent Cards' (debe quedar resaltado).");
-        return;
+        return alert("Por favor, selecciona un grupo de tarjetas guardadas abajo.");
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
     const btn = ui.printBtn;
-    const originalText = btn ? btn.innerHTML : '';
-    
-    if(btn) {
-        btn.innerHTML = 'PROCESANDO...';
-        btn.disabled = true;
-    }
+    const originalContent = btn.innerHTML;
+
+    btn.innerHTML = 'GENERANDO...';
+    btn.disabled = true;
 
     try {
-        const canvasB = await html2canvas(ui.back, { scale: 3, useCORS: true });
+        // OPCIONES ANTI-ERROR: Eliminamos sombras y gradientes que el Canvas no entiende
+        const canvasOptions = {
+            scale: 3,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false,
+            onclone: (clonedDoc) => {
+                // Forzamos a que todo lo clonado para la foto NO tenga gradientes ni sombras raras
+                const elements = clonedDoc.getElementsByTagName("*");
+                for (let el of elements) {
+                    el.style.boxShadow = "none";
+                    el.style.textShadow = "none";
+                    if (el.style.backgroundImage.includes('gradient')) {
+                        el.style.backgroundImage = "none";
+                        el.style.backgroundColor = "#ffffff";
+                    }
+                }
+            }
+        };
+
+        // Captura Dorso
+        const canvasB = await html2canvas(ui.back, canvasOptions);
         const imgB = canvasB.toDataURL('image/png');
 
         for (let i = 0; i < currentGroupCards.length; i++) {
             if (i > 0) doc.addPage('a4', 'l');
 
             const tempDiv = document.createElement('div');
-            Object.assign(tempDiv.style, { position: 'fixed', top: '0', left: '-5000px', width: '80mm', height: '100mm' });
+            Object.assign(tempDiv.style, { position: 'fixed', top: '0', left: '-10000px', width: '80mm', height: '100mm' });
             document.body.appendChild(tempDiv);
             
             renderCardToElement(currentGroupCards[i], tempDiv);
-            await new Promise(r => setTimeout(r, 150)); 
+            await new Promise(r => setTimeout(r, 100)); 
 
-            const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), { scale: 3 });
+            const canvasF = await html2canvas(tempDiv.querySelector('.render-target'), canvasOptions);
             const imgF = canvasF.toDataURL('image/png');
 
             doc.addImage(imgF, 'PNG', 63.5, 55, 80, 100);
@@ -112,17 +126,15 @@ async function exportA4() {
         doc.save(`PlayRole_${selectedTema}.pdf`);
     } catch (err) {
         console.error("Fallo en PDF:", err);
-        alert("Hubo un problema al generar el archivo.");
+        alert("Error de renderizado. Intenta usar un navegador basado en Chrome.");
     } finally {
-        if(btn) {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
     }
 }
 
 /**
- * 3. GESTIÓN DE UI
+ * 3. LÓGICA DE GRUPOS
  */
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -133,12 +145,12 @@ function renderRecentGroups() {
     Object.keys(db).forEach(tema => {
         const isActive = (tema === selectedTema);
         const div = document.createElement('div');
-        div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-primary ring-2 ring-primary/30 shadow-md' : 'border-slate-200 opacity-60'}`;
+        div.className = `flex-shrink-0 w-24 card-ratio bg-white rounded-md border p-2 flex flex-col items-center justify-between cursor-pointer transition-all ${isActive ? 'border-blue-600 ring-2 ring-blue-100 shadow-md' : 'border-slate-200 opacity-60'}`;
         
         div.innerHTML = `
             <span class="text-[8px] font-bold truncate w-full text-center">${tema}</span>
             <div class="text-center">
-                <p class="text-[10px] font-black text-primary">${db[tema].length} CARDS</p>
+                <p class="text-[10px] font-black text-blue-700">${db[tema].length} CARDS</p>
                 <button onclick="event.stopPropagation(); deleteGroup('${tema}')" class="text-[8px] text-red-500 font-bold hover:underline">BORRAR</button>
             </div>
         `;
@@ -157,7 +169,7 @@ window.selectGroup = (tema) => {
 };
 
 window.deleteGroup = (tema) => {
-    if(confirm(`¿Borrar grupo "${tema}"?`)) {
+    if(confirm(`¿Eliminar grupo "${tema}"?`)) {
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         delete db[tema];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -179,12 +191,7 @@ function updatePreview() {
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentGroups();
     const ui = getUI();
-    const fields = {
-        situacion: document.querySelector('input[type="number"]'),
-        rol: document.querySelector('input[placeholder*="Facilitador"]'),
-        tema: document.querySelector('input[placeholder*="Resolution"]'),
-        desarrollo: document.querySelector('textarea')
-    };
+    const fields = getFields();
 
     // Flechas
     const prev = document.querySelector('button:has([data-icon="chevron_left"])') || document.querySelectorAll('button')[0];
@@ -193,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(prev) prev.onclick = () => { if(currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); } };
     if(next) next.onclick = () => { if(currentPreviewIndex < currentGroupCards.length - 1) { currentPreviewIndex++; updatePreview(); } };
 
-    // Acción Guardar
+    // Guardar
     if(ui.saveBtn) ui.saveBtn.onclick = (e) => {
         e.preventDefault();
         const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -209,13 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectGroup(t);
     };
 
-    // Acción Imprimir (Asignación manual para asegurar)
-    if(ui.printBtn) {
-        ui.printBtn.addEventListener('click', exportA4);
-        console.log("Botón de impresión vinculado correctamente.");
-    } else {
-        console.warn("No se encontró el botón de impresión.");
-    }
+    if(ui.printBtn) ui.printBtn.addEventListener('click', exportA4);
 
     // Live Preview
     Object.values(fields).forEach(el => {
