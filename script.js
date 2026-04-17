@@ -1,3 +1,6 @@
+// ===============================
+// ESTADO GLOBAL
+// ===============================
 const STORAGE_KEY = 'playrole_v5_db';
 
 let currentGroupCards = [];
@@ -5,22 +8,28 @@ let currentPreviewIndex = 0;
 let selectedTema = null;
 
 // ===============================
-// SELECTORES SEGUROS
+// HELPERS SEGUROS
+// ===============================
+function qs(sel) { return document.querySelector(sel); }
+function qsa(sel) { return document.querySelectorAll(sel); }
+
+// ===============================
+// UI
 // ===============================
 function getUI() {
-    const ratios = document.querySelectorAll('.card-ratio');
+    const cards = qsa('.card-ratio');
 
     return {
-        front: ratios[0] || null,
-        back: ratios[1] || null,
-        carousel: document.querySelector('.flex.gap-4.overflow-x-auto') || null,
-        buttons: document.querySelectorAll('button')
+        front: cards[0] || null,
+        back: cards[1] || null,
+        carousel: qs('.flex.gap-4.overflow-x-auto'),
+        buttons: qsa('button')
     };
 }
 
 function getFields() {
-    const inputs = document.querySelectorAll('input');
-    const textarea = document.querySelector('textarea');
+    const inputs = qsa('input');
+    const textarea = qs('textarea');
 
     return {
         situacion: inputs[0] || null,
@@ -31,58 +40,21 @@ function getFields() {
 }
 
 // ===============================
-// EXPORTAR PDF (FIX REAL)
+// PREVIEW (NO TOCA DISEÑO)
 // ===============================
-async function exportA4() {
-
-    if (!currentGroupCards.length) {
-        alert("Seleccioná un grupo");
-        return;
-    }
-
+function updatePreview() {
     const ui = getUI();
+    if (!ui.front) return;
 
-    if (!ui.front || !ui.back) {
-        alert("No se encontraron las tarjetas");
-        return;
-    }
+    const card = currentGroupCards[currentPreviewIndex];
+    if (!card) return;
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
-
-    try {
-        const canvasBack = await html2canvas(ui.back, {
-            scale: 3,
-            backgroundColor: "#fff"
-        });
-
-        const imgBack = canvasBack.toDataURL('image/png');
-
-        for (let i = 0; i < currentGroupCards.length; i++) {
-
-            if (i > 0) doc.addPage();
-
-            const canvasFront = await html2canvas(ui.front, {
-                scale: 3,
-                backgroundColor: "#fff"
-            });
-
-            const imgFront = canvasFront.toDataURL('image/png');
-
-            doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
-            doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
-        }
-
-        doc.save("PlayRole.pdf");
-
-    } catch (e) {
-        console.error(e);
-        alert("Error generando PDF");
-    }
+    // Solo actualiza contenido básico sin romper tu layout
+    ui.front.innerText = card.desarrollo || '';
 }
 
 // ===============================
-// GRUPOS (SIN TOCAR DISEÑO)
+// STORAGE
 // ===============================
 function renderRecentGroups() {
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -94,8 +66,9 @@ function renderRecentGroups() {
 
     Object.keys(db).forEach(tema => {
         const div = document.createElement('div');
-
         div.textContent = tema;
+        div.style.cursor = 'pointer';
+
         div.onclick = () => selectGroup(tema);
 
         ui.carousel.appendChild(div);
@@ -112,18 +85,64 @@ function selectGroup(tema) {
     updatePreview();
 }
 
-function updatePreview() {
+// ===============================
+// EXPORTAR PDF (FIX REAL)
+// ===============================
+async function exportA4() {
+
+    if (!currentGroupCards.length) {
+        alert("Seleccioná un grupo");
+        return;
+    }
+
     const ui = getUI();
-    if (!ui.front) return;
 
-    const card = currentGroupCards[currentPreviewIndex];
-    if (!card) return;
+    if (!ui.front || !ui.back) {
+        alert("No se encontraron tarjetas");
+        return;
+    }
 
-    ui.front.innerText = card.desarrollo || '';
+    if (!window.html2canvas || !window.jspdf) {
+        alert("Faltan librerías");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    try {
+        const canvasBack = await html2canvas(ui.back, {
+            scale: 2,
+            backgroundColor: "#fff"
+        });
+
+        const imgBack = canvasBack.toDataURL('image/png');
+
+        for (let i = 0; i < currentGroupCards.length; i++) {
+
+            if (i > 0) doc.addPage();
+
+            const canvasFront = await html2canvas(ui.front, {
+                scale: 2,
+                backgroundColor: "#fff"
+            });
+
+            const imgFront = canvasFront.toDataURL('image/png');
+
+            doc.addImage(imgFront, 'PNG', 63.5, 55, 80, 100);
+            doc.addImage(imgBack, 'PNG', 153.5, 55, 80, 100);
+        }
+
+        doc.save(`PlayRole_${selectedTema || 'export'}.pdf`);
+
+    } catch (e) {
+        console.error(e);
+        alert("Error generando PDF");
+    }
 }
 
 // ===============================
-// INIT (NO ROMPE NADA)
+// INIT
 // ===============================
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -132,13 +151,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderRecentGroups();
 
+    // ---------------------------
     // GUARDAR
+    // ---------------------------
     const saveBtn = Array.from(ui.buttons).find(b =>
         b.textContent.toUpperCase().includes("GUARDAR")
     );
 
     if (saveBtn) {
-        saveBtn.onclick = () => {
+        saveBtn.addEventListener('click', () => {
 
             const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
             const tema = fields.tema?.value || "Sin título";
@@ -154,16 +175,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
             selectGroup(tema);
-        };
+        });
     }
 
+    // ---------------------------
     // EXPORTAR (FIX)
+    // ---------------------------
     const exportBtn = Array.from(ui.buttons).find(b =>
         b.textContent.toUpperCase().includes("EXPORTAR")
     );
 
     if (exportBtn) {
-        exportBtn.onclick = exportA4;
+        exportBtn.addEventListener('click', exportA4);
     }
+
+    // ---------------------------
+    // LIVE PREVIEW INPUTS
+    // ---------------------------
+    Object.values(fields).forEach(el => {
+        if (!el) return;
+
+        el.addEventListener('input', () => {
+            const ui = getUI();
+
+            if (ui.front) {
+                ui.front.innerText = fields.desarrollo?.value || '';
+            }
+        });
+    });
 
 });
