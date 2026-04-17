@@ -1,327 +1,216 @@
 <!DOCTYPE html>
-
-<html class="light" lang="es"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Tarjetas PlayRole - Editor de Arquitecto</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Tarjetas PlayRole - Editor de Arquitecto</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
         tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              "colors": {
-                      "on-tertiary": "#ffffff",
-                      "on-primary-container": "#eeefff",
-                      "outline": "#737686",
-                      "secondary-fixed-dim": "#bcc7de",
-                      "on-tertiary-fixed": "#360f00",
-                      "secondary-fixed": "#d8e3fb",
-                      "on-tertiary-container": "#ffede6",
-                      "surface-container-highest": "#e1e2ed",
-                      "primary-container": "#2563eb",
-                      "on-secondary-fixed": "#111c2d",
-                      "primary": "#004ac6",
-                      "tertiary-fixed": "#ffdbcd",
-                      "error-container": "#ffdad6",
-                      "on-surface": "#191b23",
-                      "inverse-primary": "#b4c5ff",
-                      "background": "#faf8ff",
-                      "on-surface-variant": "#434655",
-                      "on-error": "#ffffff",
-                      "surface-container": "#ededf9",
-                      "surface-bright": "#faf8ff",
-                      "on-error-container": "#93000a",
-                      "secondary-container": "#d5e0f8",
-                      "secondary": "#545f73",
-                      "on-primary-fixed": "#00174b",
-                      "on-secondary-fixed-variant": "#3c475a",
-                      "tertiary-fixed-dim": "#ffb596",
-                      "on-secondary": "#ffffff",
-                      "surface-container-high": "#e7e7f3",
-                      "surface-tint": "#0053db",
-                      "surface-container-lowest": "#ffffff",
-                      "on-secondary-container": "#586377",
-                      "inverse-surface": "#2e3039",
-                      "inverse-on-surface": "#f0f0fb",
-                      "outline-variant": "#c3c6d7",
-                      "surface-container-low": "#f3f3fe",
-                      "surface": "#faf8ff",
-                      "tertiary-container": "#bc4800",
-                      "surface-dim": "#d9d9e5",
-                      "tertiary": "#943700",
-                      "error": "#ba1a1a",
-                      "on-primary": "#ffffff",
-                      "on-tertiary-fixed-variant": "#7d2d00",
-                      "primary-fixed": "#dbe1ff",
-                      "primary-fixed-dim": "#b4c5ff",
-                      "on-background": "#191b23",
-                      "surface-variant": "#e1e2ed",
-                      "on-primary-fixed-variant": "#003ea8"
-              },
-              "borderRadius": {
-                      "DEFAULT": "0.125rem",
-                      "lg": "0.5rem",
-                      "xl": "0.75rem",
-                      "full": "9999px"
-              },
-              "fontFamily": {
-                      "headline": ["Inter", "sans-serif"],
-                      "body": ["Inter", "sans-serif"],
-                      "label": ["Inter", "sans-serif"]
-              }
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#eeefff",
+                        "outline": "#737686",
+                        "secondary-fixed-dim": "#bcc7de",
+                        "on-tertiary-fixed": "#360f00",
+                        "secondary-fixed": "#d8e3fb",
+                        "on-tertiary-container": "#ffede6",
+                        "surface-container-highest": "#e1e2ed",
+                        "primary-container": "#2563eb",
+                        "on-secondary-fixed": "#111c2d",
+                        "primary": "#004ac6",
+                        "tertiary-fixed": "#ffdbcd",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#191b23",
+                        "inverse-primary": "#b4c5ff",
+                        "background": "#faf8ff",
+                        "on-surface-variant": "#434655",
+                        "on-error": "#ffffff",
+                        "surface-container": "#ededf9",
+                        "surface-bright": "#faf8ff",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#d5e0f8",
+                        "secondary": "#545f73",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#e7e7f3",
+                        "surface-tint": "#0053db",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#586377",
+                        "inverse-surface": "#2e3039",
+                        "inverse-on-surface": "#f0f0fb",
+                        "outline-variant": "#c3c6d7",
+                        "surface-container-low": "#f3f3fe",
+                        "surface": "#faf8ff",
+                        "tertiary-container": "#bc4800",
+                        "surface-dim": "#d9d9e5",
+                        "tertiary": "#943700",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "primary-fixed": "#dbe1ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-background": "#191b23",
+                        "surface-variant": "#e1e2ed",
+                        "on-primary-fixed-variant": "#003ea8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
             },
-          },
         }
     </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .signature-gradient {
-            background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
-        }
-        .glass-panel {
-            background: rgba(250, 248, 255, 0.7);
-            backdrop-filter: blur(16px);
-        }
-        .card-ratio {
-            aspect-ratio: 8 / 10;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .signature-gradient { background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%); }
+        .glass-panel { background: rgba(250, 248, 255, 0.7); backdrop-filter: blur(16px); }
+        .card-ratio { aspect-ratio: 8 / 10; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
-<!-- TopNavBar -->
-<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-[#faf8ff] dark:bg-[#191b23]">
-<div class="flex items-center gap-4">
-<span class="text-xl font-bold tracking-tighter text-[#191b23] dark:text-[#faf8ff] font-headline">Tarjetas PlayRole</span>
-</div>
-<div class="hidden md:flex items-center gap-8">
-<nav class="flex items-center gap-6">
-<a class="text-[#004ac6] dark:text-[#2563eb] font-semibold text-sm font-['Inter'] tracking-tight" href="#">Generator</a>
-<a class="text-[#191b23] dark:text-[#e1e2ed] hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 px-3 py-1 rounded-lg text-sm font-['Inter'] tracking-tight" href="#">Collection</a>
-<a class="text-[#191b23] dark:text-[#e1e2ed] hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 px-3 py-1 rounded-lg text-sm font-['Inter'] tracking-tight" href="#">Templates</a>
-</nav>
-</div>
-<div class="flex items-center gap-3">
-<button class="p-2 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 text-[#191b23] dark:text-[#e1e2ed] scale-95 active:scale-90 transition-transform">
-<span class="material-symbols-outlined" data-icon="group_add">group_add</span>
-</button>
-<button class="p-2 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 text-[#191b23] dark:text-[#e1e2ed] scale-95 active:scale-90 transition-transform">
-<span class="material-symbols-outlined" data-icon="file_download">file_download</span>
-</button>
-<button class="p-1 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 scale-95 active:scale-90 transition-transform">
-<span class="material-symbols-outlined text-2xl" data-icon="account_circle">account_circle</span>
-</button>
-</div>
-</header>
-<!-- SideNavBar (Hidden on Mobile) -->
-<aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-[#f3f3fe] dark:bg-[#1e202a] py-8 px-4 z-40">
-<div class="mb-8 px-2">
-<h2 class="text-lg font-black text-[#191b23] dark:text-[#faf8ff] font-headline">PlayRole Editor</h2>
-<p class="text-xs text-on-surface-variant opacity-70">Precise Architect Mode</p>
-</div>
-<nav class="flex-1 space-y-2">
-<button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#004ac6] dark:text-[#2563eb] border-r-4 border-[#004ac6] bg-[#ffffff] dark:bg-[#191b23] font-medium text-sm transition-all duration-300">
-<span class="material-symbols-outlined" data-icon="style">style</span>
-<span>Generator</span>
-</button>
-<button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
-<span class="material-symbols-outlined" data-icon="Library_books">library_books</span>
-<span>Collection</span>
-</button>
-<button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
-<span class="material-symbols-outlined" data-icon="dashboard_customize">dashboard_customize</span>
-<span>Templates</span>
-</button>
-<button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
-<span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
-<span>Export</span>
-</button>
-</nav>
-<button class="mt-auto w-full signature-gradient text-white py-3 rounded-xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
-<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
-        New Project
-    </button>
-</aside>
-<!-- Main Canvas -->
-<main class="pt-20 pb-24 md:pl-72 pr-6 min-h-screen">
-<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-<!-- Left Column: Editor Form -->
-<section class="lg:col-span-5 space-y-6">
-<div class="bg-surface-container-low p-8 rounded-xl">
-<div class="flex items-center justify-between mb-8">
-<h3 class="text-2xl font-bold tracking-tight text-on-surface font-headline">Editor de Contenido</h3>
-<span class="bg-primary-container/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Draft Mode</span>
-</div>
-<div class="space-y-5">
-<div class="grid grid-cols-3 gap-4">
-<div class="col-span-1">
-<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Situación</label>
-<input class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" type="number" value="1"/>
-</div>
-<div class="col-span-2">
-<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Rol</label>
-<input class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Ej: Facilitador" type="text"/>
-</div>
-</div>
-<div>
-<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Tema</label>
-<input class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Conflict Resolution" type="text"/>
-</div>
-<div>
-<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Desarrollo</label>
-<textarea class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none" placeholder="Describe la dinámica o el escenario detallado aquí..." rows="4"></textarea>
-</div>
-<div class="flex gap-3 pt-2">
-<button class="flex-1 bg-on-surface text-surface py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">Crear</button>
-<button class="flex-1 bg-primary text-on-primary py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-primary-container transition-colors">Agregar a grupo</button>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-low p-8 rounded-xl">
-<h3 class="text-lg font-bold tracking-tight text-on-surface mb-6 font-headline">Editar Dorso</h3>
-<div class="space-y-5">
-<div>
-<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Nombre Dorso</label>
-<input class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Set Alpha 2024" type="text"/>
-</div>
-<div class="flex items-center gap-3">
-<button class="flex-1 flex items-center justify-center gap-2 bg-surface-container-highest text-on-surface py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-outline-variant/20 transition-colors">
-<span class="material-symbols-outlined text-lg" data-icon="image">image</span>
-                            Imagen Dorso
-                        </button>
-<button class="p-3 bg-surface-container-highest text-on-surface rounded-lg hover:bg-outline-variant/20 transition-colors">
-<span class="material-symbols-outlined" data-icon="cloud_upload">cloud_upload</span>
-</button>
-</div>
-</div>
-</div>
-</section>
-<!-- Right Column: Preview & Carousel -->
-<section class="lg:col-span-7 space-y-8">
-<div class="flex items-center justify-between">
-<h3 class="text-3xl font-black tracking-tighter text-on-surface font-headline">Tarjetas Preview</h3>
-<div class="flex gap-2">
-<span class="w-2 h-2 rounded-full bg-primary"></span>
-<span class="w-2 h-2 rounded-full bg-outline-variant"></span>
-</div>
-</div>
-<!-- Preview Cards Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-<!-- Frente -->
-<div class="space-y-4">
-<span class="block text-center text-xs font-black text-outline uppercase tracking-widest">Frente (8x10cm)</span>
-<div class="card-ratio w-full max-w-[320px] mx-auto bg-white rounded-lg shadow-xl shadow-on-surface/5 flex flex-col items-center justify-center border-outline-variant/10 border-black/40 border p-6 relative group overflow-hidden">
-<div class="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-<div class="border-2 border-dashed border-outline-variant/30 w-full h-full rounded flex flex-col items-center justify-center text-center p-4">
-<span class="text-primary font-black text-2xl mb-2 opacity-20">FRONT</span>
-<p class="text-xs font-medium text-on-surface-variant max-w-[140px]">Contenido dinámico: Rol, Situación y Desarrollo</p>
-</div>
-</div>
-</div>
-<!-- Dorso -->
-<div class="space-y-4">
-<span class="block text-center text-xs font-black text-outline uppercase tracking-widest">Dorso (8x10cm)</span>
-<div class="card-ratio w-full max-w-[320px] mx-auto bg-white rounded-lg shadow-xl flex flex-col items-center justify-center border-black/40 border p-6 relative group overflow-hidden">
-<div class="absolute signature-gradient mix-blend-multiply"></div>
-<div class="relative z-10 border-2 border-black/20 w-full h-full rounded flex flex-col items-center justify-center text-center p-4">
-<span class="text-black font-black text-3xl tracking-tighter drop-shadow-lg">PLAYROLE</span>
-</div>
-</div>
-</div>
-</div>
-<!-- Carousel Miniatures -->
-<div class="pt-8">
-<div class="flex items-center justify-between mb-4">
-<h4 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Recent Cards</h4>
-<div class="flex gap-2">
-<button class="p-1 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span></button>
-<button class="p-1 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span></button>
-</div>
-</div>
-<div class="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
-<div class="flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer">
-<span class="text-[8px] font-bold text-on-surface-variant">#001</span>
-</div>
-<div class="flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer border-primary/40 ring-1 ring-primary/20">
-<span class="text-[8px] font-bold text-primary">#002</span>
-</div>
-<div class="flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer">
-<span class="text-[8px] font-bold text-on-surface-variant">#003</span>
-</div>
-<div class="flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer">
-<span class="text-[8px] font-bold text-on-surface-variant">#004</span>
-</div>
-<div class="flex-shrink-0 w-24 card-ratio bg-surface-container-highest rounded-md border border-outline-variant/30 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer">
-<span class="text-[8px] font-bold text-on-surface-variant">#005</span>
-</div>
-</div>
-</div>
-</section>
-</div>
-</main>
-<!-- Bottom Action Area -->
-<div class="fixed bottom-0 right-0 p-8 z-50">
-<button class="signature-gradient text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-transform">
-<span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
-        Exportar PDF
-    </button>
-</div>
-<!-- Mobile BottomNavBar -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white flex justify-around items-center py-3 border-t border-outline-variant/10 z-50">
-<button class="flex flex-col items-center gap-1 text-primary">
-<span class="material-symbols-outlined" data-icon="style" style="font-variation-settings: 'FILL' 1;">style</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Editor</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-on-surface-variant">
-<span class="material-symbols-outlined" data-icon="Library_books">library_books</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Colección</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-on-surface-variant">
-<span class="material-symbols-outlined" data-icon="dashboard_customize">dashboard_customize</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Templates</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-on-surface-variant">
-<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Perfil</span>
-</button>
-</nav>
+    <header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-[#faf8ff] dark:bg-[#191b23]">
+        <div class="flex items-center gap-4">
+            <span class="text-xl font-bold tracking-tighter text-[#191b23] dark:text-[#faf8ff] font-headline">Tarjetas PlayRole</span>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+            <nav class="flex items-center gap-6">
+                <a class="text-[#004ac6] dark:text-[#2563eb] font-semibold text-sm font-['Inter'] tracking-tight" href="#">Generator</a>
+                <a class="text-[#191b23] dark:text-[#e1e2ed] hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 px-3 py-1 rounded-lg text-sm font-['Inter'] tracking-tight" href="#">Collection</a>
+                <a class="text-[#191b23] dark:text-[#e1e2ed] hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 px-3 py-1 rounded-lg text-sm font-['Inter'] tracking-tight" href="#">Templates</a>
+            </nav>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="p-2 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 text-[#191b23] dark:text-[#e1e2ed] scale-95 active:scale-90 transition-transform">
+                <span class="material-symbols-outlined" data-icon="group_add">group_add</span>
+            </button>
+            <button class="p-2 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 text-[#191b23] dark:text-[#e1e2ed] scale-95 active:scale-90 transition-transform">
+                <span class="material-symbols-outlined" data-icon="file_download">file_download</span>
+            </button>
+            <button class="p-1 rounded-full hover:bg-[#f3f3fe] dark:hover:bg-[#2a2d3a] transition-colors duration-200 scale-95 active:scale-90 transition-transform">
+                <span class="material-symbols-outlined text-2xl" data-icon="account_circle">account_circle</span>
+            </button>
+        </div>
+    </header>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-[#f3f3fe] dark:bg-[#1e202a] py-8 px-4 z-40">
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-black text-[#191b23] dark:text-[#faf8ff] font-headline">PlayRole Editor</h2>
+            <p class="text-xs text-on-surface-variant opacity-70">Precise Architect Mode</p>
+        </div>
+        <nav class="flex-1 space-y-2">
+            <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#004ac6] dark:text-[#2563eb] border-r-4 border-[#004ac6] bg-[#ffffff] dark:bg-[#191b23] font-medium text-sm transition-all duration-300">
+                <span class="material-symbols-outlined" data-icon="style">style</span>
+                <span>Generator</span>
+            </button>
+            <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
+                <span class="material-symbols-outlined" data-icon="Library_books">library_books</span>
+                <span>Collection</span>
+            </button>
+            <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
+                <span class="material-symbols-outlined" data-icon="dashboard_customize">dashboard_customize</span>
+                <span>Templates</span>
+            </button>
+            <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#191b23] dark:text-[#e1e2ed] opacity-70 hover:bg-[#e1e2ed] dark:hover:bg-[#2a2d3a] font-medium text-sm transition-all duration-300">
+                <span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
+                <span>Export</span>
+            </button>
+        </nav>
+        <button class="mt-auto w-full signature-gradient text-white py-3 rounded-xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined text-sm" data-icon="add">add</span> New Project
+        </button>
+    </aside>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <main class="pt-20 pb-24 md:pl-72 pr-6 min-h-screen">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <section class="lg:col-span-5 space-y-6">
+                <div class="bg-surface-container-low p-8 rounded-xl">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-bold tracking-tight text-on-surface font-headline">Editor de Contenido</h3>
+                        <span class="bg-primary-container/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Draft Mode</span>
+                    </div>
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Situación</label>
+                                <input id="input-situacion" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" type="number" value="1"/>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Rol</label>
+                                <input id="input-rol" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Ej: Facilitador" type="text"/>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Tema</label>
+                            <input id="input-tema" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Conflict Resolution" type="text"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase mb-2 tracking-widest">Desarrollo</label>
+                            <textarea id="input-desarrollo" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none" placeholder="Describe la dinámica o el escenario detallado aquí..." rows="4"></textarea>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button id="btn-crear" class="flex-1 bg-on-surface text-surface py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">Crear</button>
+                            <button class="flex-1 bg-primary text-on-primary py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-primary-container transition-colors">Agregar a grupo</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+            <section class="lg:col-span-7 space-y-8">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-3xl font-black tracking-tighter text-on-surface font-headline">Tarjetas Preview</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <span class="block text-center text-xs font-black text-outline uppercase tracking-widest">Frente (8x10cm)</span>
+                        <div id="card-front" class="card-ratio w-full max-w-[320px] mx-auto bg-white rounded-lg shadow-xl border-black/40 border p-6 relative overflow-hidden">
+                            </div>
+                    </div>
+                    <div class="space-y-4">
+                        <span class="block text-center text-xs font-black text-outline uppercase tracking-widest">Dorso (8x10cm)</span>
+                        <div id="card-back" class="card-ratio w-full max-w-[320px] mx-auto bg-white rounded-lg shadow-xl border-black/40 border p-6 relative overflow-hidden">
+                            <div class="signature-gradient absolute inset-0 opacity-10"></div>
+                            <div class="relative z-10 border-2 border-black/20 w-full h-full rounded flex flex-col items-center justify-center text-center p-4">
+                                <span class="text-black font-black text-3xl tracking-tighter">PLAYROLE</span>
+                                <img id="dorso-img-preview" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Recent Cards</h4>
+                    </div>
+                    <div id="carousel-container" class="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2"></div>
+                </div>
+            </section>
+        </div>
+    </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <div class="fixed bottom-0 right-0 p-8 z-50">
+        <button id="btn-export-pdf" class="signature-gradient text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform">
+            <span class="material-symbols-outlined">picture_as_pdf</span> EXPORTAR PDF
+        </button>
+    </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script src="script.js"></script>
-
-
-
-
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js"></script>
 </body>
-
-
-
 </html>
